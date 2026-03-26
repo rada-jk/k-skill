@@ -44,6 +44,7 @@ k-skill-setup 스킬을 사용해서 공통 설정을 진행해줘.
 
 ```bash
 npx --yes skills add <owner/repo> \
+  --skill hwp \
   --skill kbo-results \
   --skill lotto-results
 ```
@@ -92,7 +93,7 @@ npm run ci
 ### Node 패키지
 
 ```bash
-npm install -g kbo-game k-lotto
+npm install -g @ohah/hwpjs kbo-game k-lotto
 export NODE_PATH="$(npm root -g)"
 ```
 

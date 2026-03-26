@@ -9,9 +9,9 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present && ./scripts/validate-skills.sh",
+    "lint": "node --check scripts/skill-docs.test.js && npm run lint --workspaces --if-present && ./scripts/validate-skills.sh",
     "typecheck": "tsc --noEmit",
-    "test": "npm run test --workspaces --if-present && ./scripts/validate-skills.sh",
+    "test": "node --test scripts/skill-docs.test.js && npm run test --workspaces --if-present && ./scripts/validate-skills.sh",
     "pack:dry-run": "npm pack --workspace k-lotto --dry-run",
     "ci": "npm run lint && npm run typecheck && npm run test && npm run pack:dry-run",
     "version-packages": "changeset version",
