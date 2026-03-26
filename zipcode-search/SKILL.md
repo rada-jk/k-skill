@@ -103,6 +103,9 @@ PY
 핵심 필드는 `sch_zipcode`(우편번호), `sch_address1`(기본 주소), `sch_bdNm`(건물명)이다.
 
 바깥쪽 Python `timeout`은 두지 말고 `curl` 자체 제한(`--max-time` + `--retry`)으로 전송 시간을 제어한다. 전송 실패가 나도 바로 다른 소스로 우회하지 말고, 위 재시도 옵션 그대로 한 번 더 실행한 뒤 키워드를 더 구체화한다.
+=======
+전송 실패가 나도 바로 다른 소스로 우회하지 말고, 위 재시도 옵션 그대로 한 번 더 실행한 뒤 키워드를 더 구체화한다.
+>>>>>>> baf85ff (Keep zipcode-search docs usable through flaky ePost retries)
 
 ### 3. Normalize for humans
 
