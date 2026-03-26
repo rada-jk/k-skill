@@ -138,3 +138,70 @@ test("zipcode-search docs lock the official ePost extraction flow and reliable t
   assert.match(featureDoc, /프로토콜\/클라이언트 제약/i);
   assert.match(featureDoc, /`curl` 자체 제한/);
 });
+
+test("repository docs advertise the delivery-tracking skill across the documented surfaces", () => {
+  const readme = read("README.md");
+  const install = read(path.join("docs", "install.md"));
+  const roadmap = read(path.join("docs", "roadmap.md"));
+  const sources = read(path.join("docs", "sources.md"));
+  const featureDocPath = path.join(repoRoot, "docs", "features", "delivery-tracking.md");
+
+  assert.ok(fs.existsSync(featureDocPath), "expected docs/features/delivery-tracking.md to exist");
+  assert.match(readme, /\| 택배 배송조회 \|/);
+  assert.match(readme, /\[택배 배송조회 가이드\]\(docs\/features\/delivery-tracking\.md\)/);
+  assert.match(install, /--skill delivery-tracking/);
+  assert.match(roadmap, /택배 배송조회 스킬 출시/);
+  assert.match(sources, /CJ대한통운 배송조회: https:\/\/www\.cjlogistics\.com\/ko\/tool\/parcel\/tracking/);
+  assert.match(sources, /우체국 배송조회: https:\/\/service\.epost\.go\.kr\/trace\.RetrieveRegiPrclDeliv\.postal\?sid1=/);
+});
+
+test("delivery-tracking skill documents official CJ and ePost flows with extension guidance", () => {
+  const skillPath = path.join(repoRoot, "delivery-tracking", "SKILL.md");
+
+  assert.ok(fs.existsSync(skillPath), "expected delivery-tracking/SKILL.md to exist");
+
+  const skill = read(path.join("delivery-tracking", "SKILL.md"));
+  const featureDoc = read(path.join("docs", "features", "delivery-tracking.md"));
+
+  assert.match(skill, /^name: delivery-tracking$/m);
+
+  for (const doc of [skill, featureDoc]) {
+    assert.match(doc, /https:\/\/www\.cjlogistics\.com\/ko\/tool\/parcel\/tracking/);
+    assert.match(doc, /tracking-detail/);
+    assert.match(doc, /paramInvcNo/);
+    assert.match(doc, /_csrf/);
+    assert.match(doc, /10자리 또는 12자리/);
+    assert.match(doc, /https:\/\/service\.epost\.go\.kr\/trace\.RetrieveRegiPrclDeliv\.postal\?sid1=/);
+    assert.match(doc, /trace\.RetrieveDomRigiTraceList\.comm/);
+    assert.match(doc, /sid1/);
+    assert.match(doc, /13자리/);
+    assert.match(doc, /curl --http1\.1 --tls-max 1\.2/);
+    assert.match(doc, /carrier adapter/i);
+    assert.match(doc, /다른 택배사/);
+  }
+
+  assert.match(skill, /1234567890/);
+  assert.match(skill, /1234567890123/);
+  assert.match(skill, /python3/);
+  assert.match(featureDoc, /JSON/);
+  assert.match(featureDoc, /HTML/);
+});
+
+test("delivery-tracking docs avoid raw CJ personal fields in published examples", () => {
+  const skill = read(path.join("delivery-tracking", "SKILL.md"));
+  const featureDoc = read(path.join("docs", "features", "delivery-tracking.md"));
+
+  assert.doesNotMatch(skill, /"message":\s*latest\.get\("crgNm"\)/);
+  assert.doesNotMatch(
+    featureDoc,
+    /print\(json\.dumps\(payload\["parcelDetailResultMap"\]\["resultList"\]\[-1\],\s*ensure_ascii=False,\s*indent=2\)\)/,
+  );
+
+  for (const doc of [skill, featureDoc]) {
+    assert.match(doc, /"status_code":\s*latest\.get\("crgSt"\)/);
+    assert.match(doc, /"status":\s*status_map\.get\(latest\.get\("crgSt"\),/);
+    assert.match(doc, /"timestamp":\s*latest\.get\("dTime"\)/);
+    assert.match(doc, /"location":\s*latest\.get\("regBranNm"\)/);
+    assert.match(doc, /"event_count":\s*len\(events\)/);
+  }
+});
