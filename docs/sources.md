@@ -5,6 +5,7 @@
 - Vercel skills package 구조: https://vercel.com/kb/guide/agent-skills-creating-installing-and-sharing-reusable-agent-context
 - `SRTrain` / `ryanking13/SRT`: https://github.com/ryanking13/SRT
 - `korail2` / `carpedm20/korail2`: https://github.com/carpedm20/korail2
+- `korail2` anti-bot bypass PR #54: https://github.com/carpedm20/korail2/pull/54
 - `kbo-game`: https://github.com/vkehfdl1/kbo-game
 - `@ohah/hwpjs`: https://github.com/ohah/hwpjs
 - `hwp-mcp`: https://github.com/jkf87/hwp-mcp

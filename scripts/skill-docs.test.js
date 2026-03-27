@@ -163,6 +163,47 @@ test("kakaotalk-mac skill documents safe macOS kakaocli usage", () => {
   assert.match(skill, /confirm before sending/i);
 });
 
+test("repository docs advertise the KTX booking skill as supported", () => {
+  const readme = read("README.md");
+  const install = read(path.join("docs", "install.md"));
+  const featureDocPath = path.join(repoRoot, "docs", "features", "ktx-booking.md");
+
+  assert.ok(fs.existsSync(featureDocPath), "expected docs/features/ktx-booking.md to exist");
+  assert.match(readme, /\| KTX 예매 \|/);
+  assert.match(readme, /\[KTX 예매 가이드\]\(docs\/features\/ktx-booking\.md\)/);
+  assert.doesNotMatch(readme, /KTX 예매는 현재 작동하지 않습니다/);
+  assert.doesNotMatch(readme, /KTX 예매 \| 현재 작동하지 않음/);
+  assert.match(install, /--skill ktx-booking/);
+});
+
+test("ktx-booking docs document the helper-based live Korail workflow", () => {
+  const skillPath = path.join(repoRoot, "ktx-booking", "SKILL.md");
+  const helperPath = path.join(repoRoot, "scripts", "ktx_booking.py");
+
+  assert.ok(fs.existsSync(skillPath), "expected ktx-booking/SKILL.md to exist");
+  assert.ok(fs.existsSync(helperPath), "expected scripts/ktx_booking.py to exist");
+
+  const skill = read(path.join("ktx-booking", "SKILL.md"));
+  const featureDoc = read(path.join("docs", "features", "ktx-booking.md"));
+  const helper = read(path.join("scripts", "ktx_booking.py"));
+
+  assert.match(skill, /^name: ktx-booking$/m);
+
+  for (const doc of [skill, featureDoc]) {
+    assert.match(doc, /python3 scripts\/ktx_booking\.py search/);
+    assert.match(doc, /python3 scripts\/ktx_booking\.py reserve/);
+    assert.match(doc, /python3 scripts\/ktx_booking\.py reservations/);
+    assert.match(doc, /python3 scripts\/ktx_booking\.py cancel/);
+    assert.match(doc, /sops exec-env/);
+    assert.match(doc, /anti-bot|Dynapath|x-dynapath-m-token/i);
+    assert.match(doc, /결제(까지)?는 자동화하지 않는다|결제는 제외/);
+  }
+
+  assert.match(helper, /x-dynapath-m-token/);
+  assert.match(helper, /250601002/);
+  assert.match(helper, /def build_parser/);
+});
+
 test("repository docs advertise the zipcode-search skill across the documented surfaces", () => {
   const readme = read("README.md");
   const install = read(path.join("docs", "install.md"));

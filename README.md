@@ -17,7 +17,7 @@ Claude code, codex, opencode 등 각종 코딩 에이전트 지원합니다.
 | 할 수 있는 일 | 설명 | 인증/시크릿 | 문서 |
 | --- | --- | --- | --- |
 | SRT 예매 | 열차 조회, 예약, 예약 확인, 취소 | 필요 | [SRT 예매 가이드](docs/features/srt-booking.md) |
-| KTX 예매 | 현재 작동하지 않음. KTX/Korail 열차 조회, 예약, 예약 확인, 취소 지원을 목표로 함 | 필요 | [KTX 예매 가이드](docs/features/ktx-booking.md) |
+| KTX 예매 | Dynapath anti-bot 대응 helper 로 KTX/Korail 열차 조회, 예약, 예약 확인, 취소 | 필요 | [KTX 예매 가이드](docs/features/ktx-booking.md) |
 | 카카오톡 Mac CLI | macOS에서 kakaocli로 대화 조회, 검색, 테스트 전송, 확인 후 실제 전송 | 불필요 | [카카오톡 Mac CLI 가이드](docs/features/kakaotalk-mac.md) |
 | 서울 지하철 도착정보 조회 | 역 기준 실시간 도착 예정 열차 확인 | 필요 | [서울 지하철 도착정보 가이드](docs/features/seoul-subway-arrival.md) |
 | KBO 경기 결과 조회 | 날짜별 경기 일정, 결과, 팀별 필터링 | 불필요 | [KBO 결과 가이드](docs/features/kbo-results.md) |
@@ -26,7 +26,6 @@ Claude code, codex, opencode 등 각종 코딩 에이전트 지원합니다.
 | 우편번호 검색 | 주소 키워드로 공식 우체국 우편번호 조회 | 불필요 | [우편번호 검색 가이드](docs/features/zipcode-search.md) |
 | 택배 배송조회 | CJ대한통운·우체국 공식 표면으로 배송 상태를 조회하고, carrier adapter 규칙으로 추가 택배사 확장을 준비 | 불필요 | [택배 배송조회 가이드](docs/features/delivery-tracking.md) |
 
-> 참고: **KTX 예매는 현재 작동하지 않습니다.**
 
 ## 처음 시작하는 순서
 
