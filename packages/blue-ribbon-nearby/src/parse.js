@@ -3,6 +3,14 @@ const LOCATION_SUFFIX_PATTERN = /(역|동|구|시|군|읍|면|리)$/u;
 const NON_WORD_PATTERN = /[^\p{L}\p{N}]+/gu;
 const ZONE_LINK_PATTERN =
   /href="([^"]*\/search\?[^"]*zone1=[^"]*zone2=[^"]*zone2Lat=[^"]*zone2Lng=[^"]*)"/giu;
+const LOCATION_QUERY_ALIASES = new Map(
+  Object.entries({
+    코엑스: ["삼성동/대치동", "삼성동", "대치동", "봉은사", "봉은사역", "삼성역"],
+    스타필드코엑스: ["삼성동/대치동", "삼성동", "대치동", "봉은사", "봉은사역", "삼성역"],
+    coex: ["삼성동/대치동", "삼성동", "대치동", "봉은사", "봉은사역", "삼성역"],
+    starfieldcoex: ["삼성동/대치동", "삼성동", "대치동", "봉은사", "봉은사역", "삼성역"]
+  }).map(([query, aliases]) => [normalizeText(query), aliases])
+);
 
 function decodeHtml(value) {
   return value
@@ -18,6 +26,20 @@ function normalizeText(value) {
     .normalize("NFKC")
     .toLowerCase()
     .replace(NON_WORD_PATTERN, "");
+}
+
+function expandLocationQueryAliases(value) {
+  const rawValue = String(value || "").trim();
+  const normalizedValue = normalizeText(rawValue);
+  const expanded = [String(value || "")];
+
+  for (const [alias, targets] of LOCATION_QUERY_ALIASES.entries()) {
+    if (normalizedValue.includes(alias)) {
+      expanded.push(...targets);
+    }
+  }
+
+  return [...new Set(expanded.filter(Boolean))];
 }
 
 function tokenizeLocation(value) {
@@ -40,6 +62,34 @@ function tokenizeLocation(value) {
   }
 
   return [...tokens];
+}
+
+function getLocationQueryVariants(query) {
+  const rawQuery = String(query || "").trim();
+
+  if (!rawQuery) {
+    return [];
+  }
+
+  const variants = [{ value: rawQuery, alias: false, penalty: 0 }];
+  const seen = new Set([normalizeText(rawQuery)]);
+
+  for (const alias of expandLocationQueryAliases(rawQuery).slice(1)) {
+    const normalizedAlias = normalizeText(alias);
+
+    if (!normalizedAlias || seen.has(normalizedAlias)) {
+      continue;
+    }
+
+    seen.add(normalizedAlias);
+    variants.push({
+      value: alias,
+      alias: true,
+      penalty: 40
+    });
+  }
+
+  return variants;
 }
 
 function parseZoneCatalogHtml(html) {
@@ -141,12 +191,38 @@ function scoreZoneMatch(query, zone) {
 
 function findZoneMatches(query, zones, options = {}) {
   const limit = options.limit ?? 5;
+  const queryVariants = getLocationQueryVariants(query);
 
   return zones
-    .map((zone) => ({
-      zone,
-      score: scoreZoneMatch(query, zone)
-    }))
+    .map((zone) => {
+      const bestMatch = queryVariants.reduce(
+        (best, variant) => {
+          const variantScore = Math.max(0, scoreZoneMatch(variant.value, zone) - variant.penalty);
+
+          if (variantScore > best.score) {
+            return {
+              score: variantScore,
+              matchedQuery: variant.value,
+              matchedBy: variant.alias ? "alias" : "query"
+            };
+          }
+
+          return best;
+        },
+        {
+          score: 0,
+          matchedQuery: String(query || ""),
+          matchedBy: "query"
+        },
+      );
+
+      return {
+        zone,
+        score: bestMatch.score,
+        matchedQuery: bestMatch.matchedQuery,
+        matchedBy: bestMatch.matchedBy
+      };
+    })
     .filter((candidate) => candidate.score > 0)
     .sort((left, right) => {
       if (right.score !== left.score) {

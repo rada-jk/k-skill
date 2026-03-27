@@ -16,6 +16,10 @@ const zoneHtml = fs.readFileSync(path.join(fixturesDir, "search-zone.html"), "ut
 const mapPayload = JSON.parse(
   fs.readFileSync(path.join(fixturesDir, "restaurants-map.json"), "utf8")
 );
+const landmarkZoneHtml = `
+  <a href="/search?query=&zone1=${encodeURIComponent("서울 강남")}&zone2=${encodeURIComponent("삼성동/대치동")}&zone2Lat=37.511310&zone2Lng=127.059330">삼성동/대치동</a>
+  <a href="/search?query=&zone1=${encodeURIComponent("서울 강북")}&zone2=${encodeURIComponent("남대문/서울역/후암동")}&zone2Lat=37.555000&zone2Lng=126.972000">남대문/서울역/후암동</a>
+`;
 
 test("parseZoneCatalogHtml extracts official zone anchors and coordinates", () => {
   const zones = parseZoneCatalogHtml(zoneHtml);
@@ -39,6 +43,13 @@ test("findZoneMatches prefers exact and partial official-zone matches", () => {
   assert.equal(exact[0].zone.zone2, "광화문/종로2가");
   assert.equal(partial[0].zone.zone2, "성수동");
   assert.ok(exact[0].score > partial[0].score / 2);
+});
+
+test("findZoneMatches resolves documented landmark aliases like 코엑스 to the nearest official zone", () => {
+  const zones = parseZoneCatalogHtml(landmarkZoneHtml);
+  const [match] = findZoneMatches("코엑스", zones, { limit: 1 });
+
+  assert.equal(match.zone.zone2, "삼성동/대치동");
 });
 
 test("buildNearbySearchParams encodes the official nearby ribbon query for a matched zone", () => {
@@ -69,6 +80,37 @@ test("normalizeNearbyItem exposes the public restaurant summary with computed di
   assert.equal(item.ribbonCount, 2);
   assert.ok(item.distanceMeters > 0);
   assert.deepEqual(item.foodTypes.slice(0, 2), ["중식", "광동식중식"]);
+});
+
+
+test("searchNearbyByLocationQuery resolves documented landmark aliases like 코엑스", async () => {
+  const originalFetch = global.fetch;
+
+  global.fetch = async (url) => {
+    if (String(url).includes("/search/zone")) {
+      return makeResponse(true, landmarkZoneHtml, "text/html");
+    }
+
+    if (String(url).includes("/restaurants/map")) {
+      return makeResponse(true, mapPayload, "application/json");
+    }
+
+    return makeResponse(false, "not found", "text/plain");
+  };
+
+  try {
+    const result = await searchNearbyByLocationQuery("코엑스", {
+      distanceMeters: 1000,
+      limit: 5
+    });
+
+    assert.equal(result.anchor.zone2, "삼성동/대치동");
+    assert.equal(result.candidates[0].zone.zone2, "삼성동/대치동");
+    assert.equal(result.candidates[0].matchedBy, "alias");
+    assert.equal(result.items.length, 2);
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test("searchNearbyByLocationQuery resolves a zone match, fetches the official nearby map payload, and normalizes the top results", async () => {
@@ -107,6 +149,7 @@ test("searchNearbyByLocationQuery resolves a zone match, fetches the official ne
     global.fetch = originalFetch;
   }
 });
+
 
 function makeResponse(ok, body, contentType) {
   return new Response(typeof body === "string" ? body : JSON.stringify(body), {

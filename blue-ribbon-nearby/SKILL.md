@@ -51,6 +51,8 @@ metadata:
 - 역명/랜드마크: `강남역`, `서울역`, `코엑스`
 - 위도/경도: `37.573713, 126.978338`
 
+랜드마크는 내부 alias 로 가장 가까운 공식 Blue Ribbon zone 이름에 매칭한다. 예: `코엑스` → `삼성동/대치동`
+
 ## Official Blue Ribbon surfaces
 
 - zone catalog: `https://www.bluer.co.kr/search/zone`
@@ -79,6 +81,7 @@ metadata:
 ### 2. Resolve the location
 
 - 동네/역명/랜드마크를 받으면 공식 `https://www.bluer.co.kr/search/zone` 목록과 먼저 매칭한다.
+- 코엑스처럼 공식 zone 이름이 아닌 대표 랜드마크는 가장 가까운 공식 zone alias 로 먼저 확장한다.
 - 위도/경도를 받으면 좌표 기반 nearby 검색으로 바로 들어간다.
 - 가장 유력한 zone 후보가 여러 개면 2~3개만 보여주고 다시 확인받는다.
 
