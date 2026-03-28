@@ -4,7 +4,7 @@ const { fetchFineDustReport } = require("./airkorea");
 const UPSTREAM_BASE_URL = "http://apis.data.go.kr";
 const ALLOWED_AIRKOREA_ROUTES = new Map([
   ["MsrstnInfoInqireSvc", new Set(["getMsrstnList", "getNearbyMsrstnList", "getTMStdrCrdnt"])],
-  ["ArpltnInforInqireSvc", new Set(["getMsrstnAcctoRltmMesureDnsty"])],
+  ["ArpltnInforInqireSvc", new Set(["getMsrstnAcctoRltmMesureDnsty", "getCtprvnRltmMesureDnsty"])],
   ["UserSportSvc", new Set(["getSvckeyDalyStats"])],
 ]);
 
@@ -107,26 +107,14 @@ function buildRateLimiter(config) {
 }
 
 function normalizeFineDustQuery(query) {
-  const lat = parseFloatValue(query.lat);
-  const lon = parseFloatValue(query.lon);
   const regionHint = trimOrNull(query.regionHint ?? query.region_hint);
   const stationName = trimOrNull(query.stationName ?? query.station_name);
 
-  if ((lat !== null && Number.isNaN(lat)) || (lon !== null && Number.isNaN(lon))) {
-    throw new Error("lat/lon must be finite numbers.");
-  }
-
-  if ((lat === null) !== (lon === null)) {
-    throw new Error("lat and lon must be provided together.");
-  }
-
-  if (lat === null && !regionHint && !stationName) {
-    throw new Error("Provide lat/lon, regionHint, or stationName.");
+  if (!regionHint && !stationName) {
+    throw new Error("Provide regionHint or stationName.");
   }
 
   return {
-    lat,
-    lon,
     regionHint,
     stationName
   };
@@ -299,10 +287,20 @@ function buildServer({ env = process.env, provider = null } = {}) {
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
     const statusCode = error.statusCode && error.statusCode >= 400 ? error.statusCode : 500;
-    reply.code(statusCode).send({
-      error: statusCode >= 500 ? "proxy_error" : "request_error",
+    const payload = {
+      error: error.code || (statusCode >= 500 ? "proxy_error" : "request_error"),
       message: error.message
-    });
+    };
+
+    if (Array.isArray(error.candidateStations)) {
+      payload.candidate_stations = error.candidateStations;
+    }
+
+    if (error.sidoName) {
+      payload.sido_name = error.sidoName;
+    }
+
+    reply.code(statusCode).send(payload);
   });
 
   return app;

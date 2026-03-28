@@ -649,19 +649,14 @@ test("fine-dust-location skill documents the official two-api flow and fallback 
 
   for (const doc of [featureDoc]) {
     assert.match(doc, /AIR_KOREA_OPEN_API_KEY/);
-    assert.match(doc, /B552584\/MsrstnInfoInqireSvc\/getNearbyMsrstnList/);
     assert.match(doc, /B552584\/MsrstnInfoInqireSvc\/getMsrstnList/);
     assert.match(doc, /B552584\/ArpltnInforInqireSvc\/getMsrstnAcctoRltmMesureDnsty/);
-    assert.match(doc, /tmX/);
-    assert.match(doc, /tmY/);
-    assert.match(doc, /TM 좌표|중부원점/);
+    assert.match(doc, /getCtprvnRltmMesureDnsty/);
     assert.match(doc, /PM10/);
     assert.match(doc, /PM2\.5|PM25/);
-    assert.match(doc, /위도/);
-    assert.match(doc, /경도/);
     assert.match(doc, /행정구역|지역명/);
     assert.match(doc, /fallback|폴백|대체 흐름/i);
-    assert.match(doc, /가까운 측정소/);
+    assert.match(doc, /후보 측정소|candidate_stations/);
     assert.match(doc, /조회 시각|조회 시점/);
     assert.match(doc, /python3 scripts\/fine_dust\.py/);
   }

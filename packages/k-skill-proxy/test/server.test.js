@@ -52,6 +52,36 @@ test("fine dust endpoint stays publicly callable without proxy auth", async (t) 
   assert.equal(providerCalls, 1);
 });
 
+test("fine dust endpoint returns candidate stations when region resolution is ambiguous", async (t) => {
+  const app = buildServer({
+    env: {
+      AIR_KOREA_OPEN_API_KEY: "airkorea-key"
+    },
+    provider: async () => {
+      const error = new Error("단일 측정소를 확정하지 못했습니다.");
+      error.statusCode = 400;
+      error.code = "ambiguous_location";
+      error.sidoName = "광주";
+      error.candidateStations = ["평동", "오선동"];
+      throw error;
+    }
+  });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/fine-dust/report?regionHint=%EA%B4%91%EC%A3%BC%20%EA%B4%91%EC%82%B0%EA%B5%AC"
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().error, "ambiguous_location");
+  assert.equal(response.json().sido_name, "광주");
+  assert.deepEqual(response.json().candidate_stations, ["평동", "오선동"]);
+});
+
 test("fine dust endpoint caches successful provider responses", async (t) => {
   let providerCalls = 0;
   const app = buildServer({

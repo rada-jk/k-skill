@@ -1,25 +1,11 @@
 const STATION_SERVICE_URL = "http://apis.data.go.kr/B552584/MsrstnInfoInqireSvc";
 const MEASUREMENT_SERVICE_URL = "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc";
-const WGS84_A = 6378137.0;
-const WGS84_F = 1 / 298.257223563;
-const BESSEL_A = 6377397.155;
-const BESSEL_F = 1 / 299.1528128;
-const AIR_KOREA_TM_LAT0 = degreesToRadians(38.0);
-const AIR_KOREA_TM_LON0 = degreesToRadians(127.0);
-const AIR_KOREA_TM_FALSE_EASTING = 200000.0;
-const AIR_KOREA_TM_FALSE_NORTHING = 500000.0;
-const AIR_KOREA_TM_SCALE = 1.0;
-const AIR_KOREA_WGS84_TO_BESSEL = [146.43, -507.89, -681.46];
 const GRADE_LABELS = {
   "1": "좋음",
   "2": "보통",
   "3": "나쁨",
   "4": "매우나쁨"
 };
-
-function degreesToRadians(value) {
-  return (value * Math.PI) / 180;
-}
 
 function extractItems(payload) {
   if (Array.isArray(payload)) {
@@ -48,98 +34,7 @@ function toFloat(raw) {
   return Number.isFinite(value) ? value : null;
 }
 
-function squaredDistance(latA, lonA, latB, lonB) {
-  return (latA - latB) ** 2 + (lonA - lonB) ** 2;
-}
-
-function meridionalArc(phi, { semiMajorAxis, eccentricitySquared }) {
-  const e2 = eccentricitySquared;
-
-  return semiMajorAxis * (
-    (1 - e2 / 4 - (3 * e2 ** 2) / 64 - (5 * e2 ** 3) / 256) * phi -
-    ((3 * e2) / 8 + (3 * e2 ** 2) / 32 + (45 * e2 ** 3) / 1024) * Math.sin(2 * phi) +
-    ((15 * e2 ** 2) / 256 + (45 * e2 ** 3) / 1024) * Math.sin(4 * phi) -
-    ((35 * e2 ** 3) / 3072) * Math.sin(6 * phi)
-  );
-}
-
-function wgs84ToBessel(latitude, longitude) {
-  const [dx, dy, dz] = AIR_KOREA_WGS84_TO_BESSEL;
-  const sourceE2 = 2 * WGS84_F - WGS84_F ** 2;
-  const targetE2 = 2 * BESSEL_F - BESSEL_F ** 2;
-
-  const latRad = degreesToRadians(latitude);
-  const lonRad = degreesToRadians(longitude);
-  const sinLat = Math.sin(latRad);
-  const cosLat = Math.cos(latRad);
-  const primeVerticalRadius = WGS84_A / Math.sqrt(1 - sourceE2 * sinLat * sinLat);
-
-  const x = primeVerticalRadius * cosLat * Math.cos(lonRad) + dx;
-  const y = primeVerticalRadius * cosLat * Math.sin(lonRad) + dy;
-  const z = primeVerticalRadius * (1 - sourceE2) * sinLat + dz;
-
-  const lonBessel = Math.atan2(y, x);
-  const horizontal = Math.sqrt(x * x + y * y);
-  let latBessel = Math.atan2(z, horizontal * (1 - targetE2));
-
-  for (let index = 0; index < 8; index += 1) {
-    const sinLatBessel = Math.sin(latBessel);
-    const besselRadius = BESSEL_A / Math.sqrt(1 - targetE2 * sinLatBessel * sinLatBessel);
-    const nextLat = Math.atan2(z + targetE2 * besselRadius * sinLatBessel, horizontal);
-
-    if (Math.abs(nextLat - latBessel) < 1e-14) {
-      latBessel = nextLat;
-      break;
-    }
-
-    latBessel = nextLat;
-  }
-
-  return [latBessel, lonBessel];
-}
-
-function wgs84ToAirKoreaTm(latitude, longitude) {
-  const [latRad, lonRad] = wgs84ToBessel(latitude, longitude);
-  const besselE2 = 2 * BESSEL_F - BESSEL_F ** 2;
-  const secondEccentricitySquared = besselE2 / (1 - besselE2);
-
-  const sinLat = Math.sin(latRad);
-  const cosLat = Math.cos(latRad);
-  const tanLat = Math.tan(latRad);
-
-  const primeVerticalRadius = BESSEL_A / Math.sqrt(1 - besselE2 * sinLat * sinLat);
-  const tanSquared = tanLat * tanLat;
-  const curvature = secondEccentricitySquared * cosLat * cosLat;
-  const A = (lonRad - AIR_KOREA_TM_LON0) * cosLat;
-
-  const meridional = meridionalArc(latRad, {
-    semiMajorAxis: BESSEL_A,
-    eccentricitySquared: besselE2
-  });
-  const meridionalOrigin = meridionalArc(AIR_KOREA_TM_LAT0, {
-    semiMajorAxis: BESSEL_A,
-    eccentricitySquared: besselE2
-  });
-
-  const tmX = AIR_KOREA_TM_FALSE_EASTING + AIR_KOREA_TM_SCALE * primeVerticalRadius * (
-    A +
-    ((1 - tanSquared + curvature) * A ** 3) / 6 +
-    ((5 - 18 * tanSquared + tanSquared ** 2 + 72 * curvature - 58 * secondEccentricitySquared) * A ** 5) / 120
-  );
-  const tmY = AIR_KOREA_TM_FALSE_NORTHING + AIR_KOREA_TM_SCALE * (
-    meridional -
-    meridionalOrigin +
-    primeVerticalRadius * tanLat * (
-      A ** 2 / 2 +
-      ((5 - tanSquared + 9 * curvature + 4 * curvature ** 2) * A ** 4) / 24 +
-      ((61 - 58 * tanSquared + tanSquared ** 2 + 600 * curvature - 330 * secondEccentricitySquared) * A ** 6) / 720
-    )
-  );
-
-  return { tmX, tmY };
-}
-
-function pickStation(stationItems, { lat = null, lon = null, regionHint = null, stationName = null } = {}) {
+function pickStation(stationItems, { regionHint = null, stationName = null } = {}) {
   if (!stationItems.length) {
     throw new Error("측정소 후보가 없습니다.");
   }
@@ -155,26 +50,6 @@ function pickStation(stationItems, { lat = null, lon = null, regionHint = null, 
     );
     if (partialMatch) {
       return partialMatch;
-    }
-  }
-
-  if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    const candidates = stationItems
-      .map((item) => {
-        const itemLat = toFloat(item.dmX);
-        const itemLon = toFloat(item.dmY);
-
-        if (itemLat === null || itemLon === null) {
-          return null;
-        }
-
-        return [squaredDistance(lat, lon, itemLat, itemLon), item];
-      })
-      .filter(Boolean)
-      .sort((left, right) => left[0] - right[0]);
-
-    if (candidates.length > 0) {
-      return candidates[0][1];
     }
   }
 
@@ -233,6 +108,15 @@ function buildStationNameCandidates({ stationName = null, regionHint = null } = 
   return [...new Set(candidates.filter(Boolean))];
 }
 
+function buildRegionTokens(regionHint) {
+  return [...new Set(
+    String(regionHint || "")
+      .split(/\s+/u)
+      .map((token) => token.trim())
+      .filter(Boolean)
+  )];
+}
+
 function findMeasurement(measurementItems, stationName) {
   const exactMatch = measurementItems.find((item) => item.stationName === stationName);
   if (exactMatch) {
@@ -271,15 +155,13 @@ function gradeToLabel(rawGrade, { pollutant, value }) {
   return "매우나쁨";
 }
 
-function buildReport({ stationItems, measurementItems, lat = null, lon = null, regionHint = null, stationName = null, lookupMode = null, selectedStation = null }) {
+function buildReport({ stationItems, measurementItems, regionHint = null, stationName = null, lookupMode = null, selectedStation = null }) {
   const station = selectedStation || resolveStation(stationItems, {
-    lat,
-    lon,
     regionHint,
     stationName
   });
   const measurement = findMeasurement(measurementItems, station.stationName);
-  const resolvedLookupMode = lookupMode || (Number.isFinite(lat) && Number.isFinite(lon) ? "coordinates" : "fallback");
+  const resolvedLookupMode = lookupMode || "fallback";
 
   return {
     station_name: station.stationName,
@@ -344,7 +226,7 @@ async function fetchJson(baseUrl, params, { fetchImpl = global.fetch, headers = 
   return JSON.parse(await response.text());
 }
 
-async function fetchStationLookup({ lat = null, lon = null, regionHint = null, stationName = null, serviceKey, fetchImpl = global.fetch, headers = {}, stationServiceUrl = STATION_SERVICE_URL }) {
+async function fetchStationLookup({ regionHint = null, stationName = null, serviceKey, fetchImpl = global.fetch, headers = {}, stationServiceUrl = STATION_SERVICE_URL }) {
   if (!serviceKey) {
     throw new Error("AIR_KOREA_OPEN_API_KEY is not configured on the proxy server.");
   }
@@ -355,26 +237,6 @@ async function fetchStationLookup({ lat = null, lon = null, regionHint = null, s
     numOfRows: 50,
     pageNo: 1
   };
-
-  if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    const { tmX, tmY } = wgs84ToAirKoreaTm(lat, lon);
-    const nearbyPayload = await fetchJson(`${stationServiceUrl}/getNearbyMsrstnList`, {
-      ...common,
-      numOfRows: 10,
-      tmX,
-      tmY
-    }, {
-      fetchImpl,
-      headers
-    });
-
-    if (extractItems(nearbyPayload).length > 0) {
-      return {
-        lookupMode: "coordinates",
-        payload: nearbyPayload
-      };
-    }
-  }
 
   if (regionHint || stationName) {
     return {
@@ -390,7 +252,7 @@ async function fetchStationLookup({ lat = null, lon = null, regionHint = null, s
     };
   }
 
-  throw new Error("위도/경도 또는 region fallback 이 필요합니다.");
+  throw new Error("regionHint 또는 stationName 이 필요합니다.");
 }
 
 async function fetchMeasurementPayload({ stationName, serviceKey, fetchImpl = global.fetch, headers = {}, measurementServiceUrl = MEASUREMENT_SERVICE_URL }) {
@@ -412,15 +274,31 @@ async function fetchMeasurementPayload({ stationName, serviceKey, fetchImpl = gl
   });
 }
 
-async function fetchFineDustReport({ lat = null, lon = null, regionHint = null, stationName = null, serviceKey, fetchImpl = global.fetch, headers = {}, stationServiceUrl = STATION_SERVICE_URL, measurementServiceUrl = MEASUREMENT_SERVICE_URL }) {
+async function fetchCtprvnMeasurementPayload({ sidoName, serviceKey, fetchImpl = global.fetch, headers = {}, measurementServiceUrl = MEASUREMENT_SERVICE_URL }) {
+  if (!serviceKey) {
+    throw new Error("AIR_KOREA_OPEN_API_KEY is not configured on the proxy server.");
+  }
+
+  return fetchJson(`${measurementServiceUrl}/getCtprvnRltmMesureDnsty`, {
+    serviceKey,
+    returnType: "json",
+    numOfRows: 100,
+    pageNo: 1,
+    sidoName,
+    ver: "1.4"
+  }, {
+    fetchImpl,
+    headers
+  });
+}
+
+async function fetchFineDustReport({ regionHint = null, stationName = null, serviceKey, fetchImpl = global.fetch, headers = {}, stationServiceUrl = STATION_SERVICE_URL, measurementServiceUrl = MEASUREMENT_SERVICE_URL }) {
   let stationLookup;
   let stationItems;
   let station;
 
   try {
     stationLookup = await fetchStationLookup({
-      lat,
-      lon,
       regionHint,
       stationName,
       serviceKey,
@@ -430,8 +308,6 @@ async function fetchFineDustReport({ lat = null, lon = null, regionHint = null, 
     });
     stationItems = extractItems(stationLookup.payload);
     station = resolveStation(stationItems, {
-      lat,
-      lon,
       regionHint,
       stationName
     });
@@ -460,8 +336,6 @@ async function fetchFineDustReport({ lat = null, lon = null, regionHint = null, 
         return buildReport({
           stationItems: [{ stationName: matchedMeasurement.stationName, addr: null }],
           measurementItems,
-          lat,
-          lon,
           regionHint,
           stationName: matchedMeasurement.stationName,
           lookupMode: "fallback",
@@ -470,6 +344,48 @@ async function fetchFineDustReport({ lat = null, lon = null, regionHint = null, 
       } catch {
         // try next candidate
       }
+    }
+
+    const regionTokens = buildRegionTokens(regionHint);
+    const sidoName = regionTokens[0];
+    if (sidoName) {
+      const ctprvnPayload = await fetchCtprvnMeasurementPayload({
+        sidoName,
+        serviceKey,
+        fetchImpl,
+        headers,
+        measurementServiceUrl
+      });
+      const cityItems = extractItems(ctprvnPayload);
+      const specificTokens = regionTokens.length > 1 ? regionTokens.slice(1) : regionTokens;
+      const tokenMatches = cityItems.filter((item) =>
+        specificTokens.some((token) => String(item.stationName || "").includes(token))
+      );
+
+      if (tokenMatches.length > 0) {
+        const selectedStation = tokenMatches[0];
+        return buildReport({
+          stationItems: [{ stationName: selectedStation.stationName, addr: null }],
+          measurementItems: cityItems,
+          regionHint,
+          stationName: selectedStation.stationName,
+          lookupMode: "fallback",
+          selectedStation: { stationName: selectedStation.stationName, addr: null }
+        });
+      }
+
+      const stationSamples = cityItems
+        .slice(0, 8)
+        .map((item) => item.stationName)
+        .filter(Boolean);
+      const lookupError = new Error(
+        `'${regionHint}' 는 현재 바로 매핑되는 단일 측정소를 확정하지 못했습니다. 아래 후보 중 정확한 측정소명으로 다시 조회해 주세요.`,
+      );
+      lookupError.statusCode = 400;
+      lookupError.code = "ambiguous_location";
+      lookupError.sidoName = sidoName;
+      lookupError.candidateStations = stationSamples;
+      throw lookupError;
     }
 
     throw error;
@@ -486,8 +402,6 @@ async function fetchFineDustReport({ lat = null, lon = null, regionHint = null, 
   return buildReport({
     stationItems,
     measurementItems: extractItems(measurementPayload),
-    lat,
-    lon,
     regionHint,
     stationName: station.stationName,
     lookupMode: stationLookup.lookupMode,
@@ -502,12 +416,12 @@ module.exports = {
   buildReport,
   extractItems,
   fetchFineDustReport,
+  fetchCtprvnMeasurementPayload,
   fetchMeasurementPayload,
   fetchStationLookup,
   findMeasurement,
   gradeToLabel,
   pickStation,
   resolveStation,
-  toFloat,
-  wgs84ToAirKoreaTm
+  toFloat
 };

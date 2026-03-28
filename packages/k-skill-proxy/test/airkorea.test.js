@@ -4,8 +4,7 @@ const assert = require("node:assert/strict");
 const {
   buildReport,
   fetchFineDustReport,
-  pickStation,
-  wgs84ToAirKoreaTm
+  pickStation
 } = require("../src/airkorea");
 
 const stationPayload = {
@@ -47,13 +46,6 @@ const measurementPayload = {
   }
 };
 
-test("wgs84 coordinates are converted to AirKorea TM", () => {
-  const { tmX, tmY } = wgs84ToAirKoreaTm(37.5665, 126.9780);
-
-  assert.ok(Math.abs(tmX - 198245.053) < 0.01);
-  assert.ok(Math.abs(tmY - 451586.838) < 0.01);
-});
-
 test("pickStation prefers specific region token matches", () => {
   const station = pickStation(stationPayload.response.body.items, {
     regionHint: "서울 강남구"
@@ -75,17 +67,10 @@ test("buildReport combines station and measurement summary", () => {
   assert.equal(report.lookup_mode, "fallback");
 });
 
-test("fetchFineDustReport falls back to region lookup when nearby returns empty", async () => {
+test("fetchFineDustReport uses station-info lookup before measurement lookup", async () => {
   const calls = [];
   const fetchImpl = async (url) => {
     calls.push(String(url));
-
-    if (String(url).includes("getNearbyMsrstnList")) {
-      return new Response(JSON.stringify({ response: { body: { items: [] } } }), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      });
-    }
 
     if (String(url).includes("getMsrstnList")) {
       return new Response(JSON.stringify({
@@ -111,8 +96,6 @@ test("fetchFineDustReport falls back to region lookup when nearby returns empty"
   };
 
   const report = await fetchFineDustReport({
-    lat: 37.5665,
-    lon: 126.978,
     regionHint: "서울 강남구",
     serviceKey: "test-key",
     fetchImpl
@@ -121,7 +104,6 @@ test("fetchFineDustReport falls back to region lookup when nearby returns empty"
   assert.equal(report.station_name, "강남구");
   assert.equal(report.lookup_mode, "fallback");
   assert.deepEqual(calls.map((url) => url.split("/").at(-1)?.split("?")[0]), [
-    "getNearbyMsrstnList",
     "getMsrstnList",
     "getMsrstnAcctoRltmMesureDnsty"
   ]);
@@ -160,4 +142,54 @@ test("fetchFineDustReport falls back to direct measurement lookup when station-i
     "getMsrstnList",
     "getMsrstnAcctoRltmMesureDnsty"
   ]);
+});
+
+test("fetchFineDustReport returns a helpful 400 when district tokens do not map to station names", async () => {
+  const fetchImpl = async (url) => {
+    const text = String(url);
+
+    if (text.includes("getMsrstnList")) {
+      return new Response("Forbidden", { status: 403, headers: { "content-type": "text/plain" } });
+    }
+
+    if (text.includes("getMsrstnAcctoRltmMesureDnsty")) {
+      return new Response(JSON.stringify({ response: { body: { items: [] } } }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    }
+
+    if (text.includes("getCtprvnRltmMesureDnsty")) {
+      return new Response(JSON.stringify({
+        response: {
+          body: {
+            items: [
+              { stationName: "평동", dataTime: "2026-03-28 17:00", pm10Value: "48", pm10Grade: "2", pm25Value: "25", pm25Grade: "2", khaiGrade: "2" },
+              { stationName: "오선동", dataTime: "2026-03-28 17:00", pm10Value: "38", pm10Grade: "2", pm25Value: "23", pm25Grade: "2", khaiGrade: "2" }
+            ]
+          }
+        }
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    }
+
+    throw new Error(`unexpected URL: ${url}`);
+  };
+
+  await assert.rejects(
+    () => fetchFineDustReport({
+      regionHint: "광주 광산구",
+      serviceKey: "test-key",
+      fetchImpl
+    }),
+    (error) =>
+      error.statusCode === 400 &&
+      error.code === "ambiguous_location" &&
+      error.sidoName === "광주" &&
+      Array.isArray(error.candidateStations) &&
+      error.candidateStations.includes("평동") &&
+      error.candidateStations.includes("오선동")
+  );
 });

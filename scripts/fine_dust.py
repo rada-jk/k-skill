@@ -372,6 +372,17 @@ def read_json_response(request: urllib.request.Request | str) -> dict:
             payload = None
 
         message = payload.get("message") if isinstance(payload, dict) else None
+        if isinstance(payload, dict) and payload.get("error") == "ambiguous_location":
+            candidates = payload.get("candidate_stations") or []
+            sido_name = payload.get("sido_name")
+            detail = [message or "단일 측정소를 확정하지 못했습니다."]
+            if sido_name:
+                detail.append(f"시도: {sido_name}")
+            if candidates:
+                detail.append(f"후보 측정소: {', '.join(candidates)}")
+                detail.append("위 후보 중 정확한 측정소명으로 --station-name 재조회하세요.")
+            raise SystemExit("\n".join(detail)) from exc
+
         raise SystemExit(message or f"요청이 실패했습니다: HTTP {exc.code}") from exc
 
 
