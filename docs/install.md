@@ -51,6 +51,7 @@ npx --yes skills add <owner/repo> \
   --skill fine-dust-location \
   --skill daiso-product-search \
   --skill blue-ribbon-nearby \
+  --skill kakao-bar-nearby \
   --skill zipcode-search \
   --skill delivery-tracking
 ```

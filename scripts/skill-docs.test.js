@@ -552,6 +552,7 @@ test("root pack:dry-run script covers all publishable workspaces", () => {
   assert.match(packageJson.scripts["pack:dry-run"], /workspace k-lotto/);
   assert.match(packageJson.scripts["pack:dry-run"], /workspace daiso-product-search/);
   assert.match(packageJson.scripts["pack:dry-run"], /workspace blue-ribbon-nearby/);
+  assert.match(packageJson.scripts["pack:dry-run"], /workspace kakao-bar-nearby/);
 });
 
 test("repository docs advertise the blue-ribbon-nearby skill across the documented surfaces", () => {
@@ -603,6 +604,57 @@ test("blue-ribbon-nearby package README stays aligned with the location-first an
   assert.match(packageReadme, /https:\/\/www\.bluer\.co\.kr\/search\/zone/);
   assert.match(packageReadme, /https:\/\/www\.bluer\.co\.kr\/restaurants\/map/);
   assert.match(packageReadme, /searchNearbyByLocationQuery/);
+});
+
+
+
+test("repository docs advertise the kakao-bar-nearby skill across the documented surfaces", () => {
+  const readme = read("README.md");
+  const install = read(path.join("docs", "install.md"));
+  const roadmap = read(path.join("docs", "roadmap.md"));
+  const sources = read(path.join("docs", "sources.md"));
+  const featureDocPath = path.join(repoRoot, "docs", "features", "kakao-bar-nearby.md");
+
+  assert.ok(fs.existsSync(featureDocPath), "expected docs/features/kakao-bar-nearby.md to exist");
+  assert.match(readme, /\| 근처 술집 조회 \|/);
+  assert.match(readme, /\[근처 술집 조회 가이드\]\(docs\/features\/kakao-bar-nearby\.md\)/);
+  assert.match(install, /--skill kakao-bar-nearby/);
+  assert.match(roadmap, /근처 술집 조회 스킬 출시/);
+  assert.match(sources, /카카오맵 모바일 검색: https:\/\/m\.map\.kakao\.com\/actions\/searchView/);
+  assert.match(sources, /카카오맵 장소 패널 JSON: https:\/\/place-api\.map\.kakao\.com\/places\/panel3\//);
+});
+
+test("kakao-bar-nearby skill documents location-first Kakao Map search with open-now/menu/seating hints", () => {
+  const skillPath = path.join(repoRoot, "kakao-bar-nearby", "SKILL.md");
+
+  assert.ok(fs.existsSync(skillPath), "expected kakao-bar-nearby/SKILL.md to exist");
+
+  const skill = read(path.join("kakao-bar-nearby", "SKILL.md"));
+  const featureDoc = read(path.join("docs", "features", "kakao-bar-nearby.md"));
+
+  assert.match(skill, /^name: kakao-bar-nearby$/m);
+
+  for (const doc of [skill, featureDoc]) {
+    assert.match(doc, /현재 위치/);
+    assert.match(doc, /서울역|강남|사당|논현/);
+    assert.match(doc, /https:\/\/m\.map\.kakao\.com\/actions\/searchView/);
+    assert.match(doc, /https:\/\/place-api\.map\.kakao\.com\/places\/panel3\//);
+    assert.match(doc, /영업 중|영업전|영업 상태/);
+    assert.match(doc, /메뉴/);
+    assert.match(doc, /단체석|좌석 옵션|인원 수용/);
+    assert.match(doc, /전화번호/);
+    assert.match(doc, /kakao-bar-nearby|근처 술집 조회/u);
+  }
+});
+
+test("kakao-bar-nearby package README stays aligned with the Kakao Map live lookup flow", () => {
+  const packageReadme = read(path.join("packages", "kakao-bar-nearby", "README.md"));
+
+  assert.match(packageReadme, /현재 위치를 먼저 물어본다/u);
+  assert.match(packageReadme, /서울역 술집/);
+  assert.match(packageReadme, /https:\/\/m\.map\.kakao\.com\/actions\/searchView/);
+  assert.match(packageReadme, /https:\/\/place-api\.map\.kakao\.com\/places\/panel3\//);
+  assert.match(packageReadme, /searchNearbyBarsByLocationQuery/);
 });
 
 test("repository docs advertise the fine-dust-location skill across the documented surfaces", () => {

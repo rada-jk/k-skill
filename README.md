@@ -27,6 +27,7 @@ Claude code, codex, opencode 등 각종 코딩 에이전트 지원합니다.
 | 로또 당첨 확인 | 최신 회차, 특정 회차, 번호 대조 | 불필요 | [로또 결과 가이드](docs/features/lotto-results.md) |
 | HWP 문서 처리 | `.hwp` → JSON/Markdown/HTML 변환, 이미지 추출, 배치 처리, Windows 직접 제어 선택 | 불필요 | [HWP 문서 처리 가이드](docs/features/hwp.md) |
 | 근처 블루리본 맛집 | 현재 위치를 먼저 확인한 뒤 블루리본 서베이 공식 표면으로 근처 블루리본 맛집 검색 | 불필요 | [근처 블루리본 맛집 가이드](docs/features/blue-ribbon-nearby.md) |
+| 근처 술집 조회 | 현재 위치(서울역/강남/사당 등)를 먼저 확인한 뒤 카카오맵 기준으로 영업 상태·메뉴·좌석·전화번호가 포함된 술집 조회 | 불필요 | [근처 술집 조회 가이드](docs/features/kakao-bar-nearby.md) |
 | 우편번호 검색 | 주소 키워드로 공식 우체국 우편번호 조회 | 불필요 | [우편번호 검색 가이드](docs/features/zipcode-search.md) |
 | 다이소 상품 조회 | 다이소몰 공식 매장/상품/재고 표면으로 특정 매장의 상품 재고 확인 | 불필요 | [다이소 상품 조회 가이드](docs/features/daiso-product-search.md) |
 | 택배 배송조회 | CJ대한통운·우체국 공식 표면으로 배송 상태를 조회하고, carrier adapter 규칙으로 추가 택배사 확장을 준비 | 불필요 | [택배 배송조회 가이드](docs/features/delivery-tracking.md) |
@@ -63,6 +64,7 @@ Claude code, codex, opencode 등 각종 코딩 에이전트 지원합니다.
 - [로또 당첨 확인](docs/features/lotto-results.md)
 - [HWP 문서 처리](docs/features/hwp.md)
 - [근처 블루리본 맛집 가이드](docs/features/blue-ribbon-nearby.md)
+- [근처 술집 조회 가이드](docs/features/kakao-bar-nearby.md)
 - [우편번호 검색](docs/features/zipcode-search.md)
 - [다이소 상품 조회](docs/features/daiso-product-search.md)
 - [택배 배송조회](docs/features/delivery-tracking.md)
