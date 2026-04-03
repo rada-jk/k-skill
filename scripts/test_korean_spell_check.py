@@ -48,6 +48,13 @@ class SplitTextIntoChunksTest(unittest.TestCase):
 
         self.assertEqual("".join(chunks), text)
 
+    def test_handles_overlong_unit_with_trailing_separator(self):
+        text = "첫문장은조금길게씁니다. 둘째문장도길어요.\n\n다음 문단입니다."
+
+        chunks = split_text_into_chunks(text, max_chars=18)
+
+        self.assertEqual("".join(chunks), text)
+
     def test_avoids_separator_only_chunks_when_a_paragraph_exactly_hits_the_limit(self):
         text = "123456789012345\n\nabc"
 
