@@ -19,6 +19,34 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function findSection(doc, heading) {
+  const escaped = escapeRegex(heading);
+  const match = doc.match(new RegExp(`${escaped}[\\s\\S]*?(?=\\n## |\\n### |$)`));
+
+  assert.ok(match, `expected section headed by "${heading}"`);
+  return match[0];
+}
+
+function assertOliveYoungCloneFallbackCommands(doc, label) {
+  assert.match(doc, /node dist\/bin\.js health/, `${label} should document the runnable local health command`);
+  assert.match(
+    doc,
+    /node dist\/bin\.js get \/api\/oliveyoung\/stores --keyword 명동 --limit 5 --json/,
+    `${label} should document the runnable local store lookup command`,
+  );
+  assert.match(
+    doc,
+    /node dist\/bin\.js get \/api\/oliveyoung\/products --keyword 선크림 --size 5 --json/,
+    `${label} should document the runnable local product lookup command`,
+  );
+  assert.match(
+    doc,
+    /node dist\/bin\.js get \/api\/oliveyoung\/inventory --keyword 선크림 --storeKeyword 명동 --size 5 --json/,
+    `${label} should document the runnable local inventory lookup command`,
+  );
+  assert.doesNotMatch(doc, /^\s*npx daiso\b/m, `${label} should not publish broken clone-local npx commands`);
+}
+
 function extractQuotedEntries(block, indent) {
   return block
     .split("\n")
@@ -700,11 +728,13 @@ test("repository docs advertise the olive-young-search skill across the document
 
 test("olive-young install docs warn about intermittent public endpoint failures and direct users to retry or clone fallback", () => {
   const install = read(path.join("docs", "install.md"));
+  const quickstart = findSection(install, "### `olive-young-search` upstream CLI quickstart");
 
   assert.match(install, /olive-young-search/);
   assert.match(install, /5xx\/503/);
   assert.match(install, /재시도|retry/i);
   assert.match(install, /clone fallback|git clone https:\/\/github\.com\/hmmhmmhm\/daiso-mcp\.git/i);
+  assertOliveYoungCloneFallbackCommands(quickstart, "olive-young install quickstart");
 });
 
 test("olive-young-search skill documents the upstream daiso CLI flow for stores, products, and inventory", () => {
@@ -714,6 +744,8 @@ test("olive-young-search skill documents the upstream daiso CLI flow for stores,
   assert.ok(fs.existsSync(skillPath), "expected olive-young-search/SKILL.md to exist");
 
   const skill = read(path.join("olive-young-search", "SKILL.md"));
+  const featureFallback = findSection(featureDoc, "## 원본 저장소 clone fallback");
+  const skillFallback = findSection(skill, "## Fallback: clone the original repository and run the same CLI locally");
 
   assert.match(skill, /^name: olive-young-search$/m);
   assert.match(skill, /^description: .*올리브영.*매장.*상품.*재고.*$/m);
@@ -733,6 +765,10 @@ test("olive-young-search skill documents the upstream daiso CLI flow for stores,
     assert.match(doc, /\/api\/oliveyoung\/products/);
     assert.match(doc, /\/api\/oliveyoung\/inventory/);
     assert.match(doc, /vendoring 하지 않/);
+  }
+
+  for (const fallbackDoc of [featureFallback, skillFallback]) {
+    assertOliveYoungCloneFallbackCommands(fallbackDoc, "olive-young clone fallback docs");
   }
 });
 

@@ -66,17 +66,18 @@ daiso health
 
 ## Fallback: clone the original repository and run the same CLI locally
 
-public endpoint 재시도나 버전 고정이 필요하면 원본 저장소를 clone 해서 같은 CLI를 사용한다.
+public endpoint 재시도나 버전 고정이 필요하면 원본 저장소를 clone 해서 build 결과물 `dist/bin.js` 를 `node` 로 직접 실행한다.
+clone checkout 안에서는 `npx daiso ...` 가 `Permission denied` 로 실패할 수 있으므로, local fallback은 아래 경로를 기본으로 둔다.
 
 ```bash
 git clone https://github.com/hmmhmmhm/daiso-mcp.git
 cd daiso-mcp
 npm install
 npm run build
-npx daiso health
-npx daiso get /api/oliveyoung/stores --keyword 명동 --limit 5 --json
-npx daiso get /api/oliveyoung/products --keyword 선크림 --size 5 --json
-npx daiso get /api/oliveyoung/inventory --keyword 선크림 --storeKeyword 명동 --size 5 --json
+node dist/bin.js health
+node dist/bin.js get /api/oliveyoung/stores --keyword 명동 --limit 5 --json
+node dist/bin.js get /api/oliveyoung/products --keyword 선크림 --size 5 --json
+node dist/bin.js get /api/oliveyoung/inventory --keyword 선크림 --storeKeyword 명동 --size 5 --json
 ```
 
 즉, 이 스킬의 기본 원칙은 **원본 `hmmhmmhm/daiso-mcp`를 설치/실행해서 쓰고, `k-skill`에는 가이드만 추가하는 것**이다.

@@ -49,17 +49,18 @@ daiso health
 
 ## 원본 저장소 clone fallback
 
-public endpoint 재시도, 버전 고정, 원본 확인이 필요하면 아래처럼 clone 후 동일한 CLI를 쓴다.
+public endpoint 재시도, 버전 고정, 원본 확인이 필요하면 아래처럼 clone 후 build 결과물 `dist/bin.js` 를 `node` 로 직접 실행한다.
+clone checkout 안에서는 `npx daiso ...` 가 `Permission denied` 로 실패할 수 있으므로 이 경로를 기본으로 적는다.
 
 ```bash
 git clone https://github.com/hmmhmmhm/daiso-mcp.git
 cd daiso-mcp
 npm install
 npm run build
-npx daiso health
-npx daiso get /api/oliveyoung/stores --keyword 명동 --limit 5 --json
-npx daiso get /api/oliveyoung/products --keyword 선크림 --size 5 --json
-npx daiso get /api/oliveyoung/inventory --keyword 선크림 --storeKeyword 명동 --size 5 --json
+node dist/bin.js health
+node dist/bin.js get /api/oliveyoung/stores --keyword 명동 --limit 5 --json
+node dist/bin.js get /api/oliveyoung/products --keyword 선크림 --size 5 --json
+node dist/bin.js get /api/oliveyoung/inventory --keyword 선크림 --storeKeyword 명동 --size 5 --json
 ```
 
 ## 입력값 권장 순서
@@ -120,11 +121,11 @@ npx --yes daiso get /api/oliveyoung/inventory --keyword 선크림 --storeKeyword
 2026-04-05 기준 아래 흐름을 실제로 실행해 응답을 확인했다.
 
 - `npx --yes daiso health` → `status: ok`, endpoint `https://mcp.aka.page/mcp`
-- local clone + build 후 `npx daiso get /api/oliveyoung/stores --keyword 명동 --limit 3 --json`
+- local clone + build 후 `node dist/bin.js get /api/oliveyoung/stores --keyword 명동 --limit 3 --json`
   - `명동타임워크점`, `명동2가점`, `올리브영 명동 타운` 등 매장 후보 확인
-- local clone + build 후 `npx daiso get /api/oliveyoung/products --keyword 선크림 --size 3 --json`
+- local clone + build 후 `node dist/bin.js get /api/oliveyoung/products --keyword 선크림 --size 3 --json`
   - `totalCount: 435`, `imageUrl`, `priceToPay`, `inStock` 포함 상품 후보 확인
-- local clone + build 후 `npx daiso get /api/oliveyoung/inventory --keyword 선크림 --storeKeyword 명동 --size 3 --json`
+- local clone + build 후 `node dist/bin.js get /api/oliveyoung/inventory --keyword 선크림 --storeKeyword 명동 --size 3 --json`
   - `stockLabel: 재고 9개 이상 / 품절 / 미판매`, `remainQuantity`, `storeName` 확인
 
 같은 날짜에 public `npx --yes daiso get /api/oliveyoung/stores ...` 는 한 차례 `Zyte API 호출 실패: 503 Service Unavailable` 를 반환했다. 그래서 문서 기본 경로는 여전히 CLI first 이지만, **재시도 또는 clone fallback** 을 함께 안내한다.
