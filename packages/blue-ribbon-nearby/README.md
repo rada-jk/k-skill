@@ -79,6 +79,8 @@ main().catch((error) => {
 }
 ```
 
+같은 날짜에 `searchNearbyByCoordinates()` 로 광화문 좌표를 직접 넣어도 동일한 `premium_required` 계약이 반환됩니다.
+
 ## Historical snapshot
 
 2026-03-27 에는 아래처럼 live nearby 결과가 내려왔습니다. 현재는 upstream 정책 변경으로 이 스냅샷을 재현할 수 없습니다.

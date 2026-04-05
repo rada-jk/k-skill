@@ -113,7 +113,7 @@ try {
 
 내부적으로는 `ribbon=true`, `ribbonType=RIBBON_THREE,RIBBON_TWO,RIBBON_ONE`, `isAround=true`, `sort=distance`, `zone2Lat`, `zone2Lng` 같은 파라미터를 사용한다.
 
-`error.code === "premium_required"` 이면 zone 매칭은 성공했지만 Blue Ribbon 쪽 live nearby 결과가 현재 premium gate 뒤에 있다는 뜻이다.
+`error.code === "premium_required"` 이면 zone 매칭은 성공했지만 Blue Ribbon 쪽 live nearby 결과가 현재 premium gate 뒤에 있다는 뜻이다. 이 계약은 location query 뿐 아니라 좌표 기반 `searchNearbyByCoordinates()` entrypoint 에도 동일하게 적용된다.
 
 ### 4. Respond with a short restaurant summary
 
