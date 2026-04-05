@@ -172,12 +172,7 @@ test("searchNearbyByLocationQuery surfaces PREMIUM_REQUIRED with a stable domain
           distanceMeters: 1000,
           limit: 5
         }),
-      (error) =>
-        error.statusCode === 403 &&
-        error.code === "premium_required" &&
-        error.upstreamError === "PREMIUM_REQUIRED" &&
-        error.upstreamUrl.includes("/restaurants/map") &&
-        /premium/i.test(error.message)
+      assertPremiumRequiredError
     );
   } finally {
     global.fetch = originalFetch;
@@ -204,17 +199,22 @@ test("searchNearbyByCoordinates surfaces PREMIUM_REQUIRED with the same domain e
           distanceMeters: 1000,
           limit: 5
         }),
-      (error) =>
-        error.statusCode === 403 &&
-        error.code === "premium_required" &&
-        error.upstreamError === "PREMIUM_REQUIRED" &&
-        error.upstreamUrl.includes("/restaurants/map") &&
-        /Blue Ribbon/i.test(error.message)
+      assertPremiumRequiredError
     );
   } finally {
     global.fetch = originalFetch;
   }
 });
+
+function assertPremiumRequiredError(error) {
+  return (
+    error.statusCode === 403 &&
+    error.code === "premium_required" &&
+    error.upstreamError === "PREMIUM_REQUIRED" &&
+    error.upstreamUrl.includes("/restaurants/map") &&
+    /premium/i.test(error.message)
+  );
+}
 
 function makeResponse(status, body, contentType) {
   return new Response(typeof body === "string" ? body : JSON.stringify(body), {
