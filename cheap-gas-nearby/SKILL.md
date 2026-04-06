@@ -35,12 +35,9 @@ metadata:
 - 제품이 불명확하면: `휘발유 기준으로 볼까요, 경유 기준으로 볼까요? 따로 말씀 없으면 휘발유로 찾을게요.`
 - 위치가 애매하면: `가까운 역명이나 동 이름으로 한 번만 더 알려주세요.`
 
-## Required secret
+## Default path
 
-- `OPINET_API_KEY`
-
-이 스킬은 **공식 Opinet Open API 인증키**가 있어야 정확한 nearby 가격 조회를 할 수 있다.
-`OPINET_API_KEY` 가 비어 있으면 우회하지 말고 필요한 값 이름을 그대로 알려준다.
+기본적으로 `https://k-skill-proxy.nomadamas.org/v1/opinet/around` 와 `/v1/opinet/detail` 을 경유해 조회한다. 사용자 쪽에서 별도 `OPINET_API_KEY` 를 준비할 필요가 없다.
 
 ## Official Opinet surfaces
 
@@ -91,7 +88,6 @@ const { searchCheapGasStationsByLocationQuery } = require("cheap-gas-nearby");
 
 async function main() {
   const result = await searchCheapGasStationsByLocationQuery("서울역", {
-    apiKey: process.env.OPINET_API_KEY,
     productCode: "B027",
     radius: 1000,
     limit: 3
@@ -110,12 +106,12 @@ main().catch((error) => {
 ## Done when
 
 - 유저의 현재 위치를 먼저 확인했다.
-- `OPINET_API_KEY` 준비 여부를 확인했다.
+- 기본 proxy 경유로 Opinet 데이터를 조회했다.
 - 공식 Opinet nearby 결과를 최소 1개 이상 찾았거나, 못 찾은 이유와 다음 질문을 제시했다.
 - 가격순 상위 결과를 3~5개 이내로 정리했다.
 
 ## Failure modes
 
-- `OPINET_API_KEY` 가 없으면 공식 nearby 조회를 시작할 수 없다.
+- 프록시 서버가 내려가 있거나 `OPINET_API_KEY` 가 서버에 설정되지 않은 경우.
 - Kakao Map anchor가 애매하면 좌표가 잘못 잡힐 수 있어 추가 위치 확인이 필요하다.
 - Opinet Open API 응답이 일시적으로 비거나 갱신 중일 수 있다.

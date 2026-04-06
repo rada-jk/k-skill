@@ -15,6 +15,7 @@ const PLACE_PANEL_URL_BASE = "https://place-api.map.kakao.com/places/panel3";
 const OPINET_BASE_URL = "https://www.opinet.co.kr/api";
 const AROUND_ALL_URL = `${OPINET_BASE_URL}/aroundAll.do`;
 const DETAIL_BY_ID_URL = `${OPINET_BASE_URL}/detailById.do`;
+const DEFAULT_PROXY_BASE_URL = "https://k-skill-proxy.nomadamas.org";
 const DEFAULT_BROWSER_HEADERS = {
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "accept-language": "ko,en-US;q=0.9,en;q=0.8",
@@ -68,14 +69,22 @@ async function request(url, options = {}, responseType = "text") {
   return responseType === "json" ? response.json() : response.text();
 }
 
+function resolveProxyBaseUrl(options = {}) {
+  return options.proxyBaseUrl || process.env.KSKILL_PROXY_BASE_URL || DEFAULT_PROXY_BASE_URL;
+}
+
 function resolveApiKey(options = {}) {
   const apiKey = options.apiKey || options.certKey || process.env.OPINET_API_KEY;
 
-  if (!apiKey) {
+  if (!apiKey && options.useDirectApi) {
     throw new Error("OPINET_API_KEY or options.apiKey is required for official Opinet lookups.");
   }
 
   return apiKey;
+}
+
+function useDirectApi(options = {}) {
+  return options.useDirectApi || !!(options.apiKey || options.certKey);
 }
 
 function parseCoordinateQuery(locationQuery) {
@@ -153,21 +162,41 @@ function normalizeCountOption(value, fallback, label, minimum = 0) {
 }
 
 async function fetchAroundStations({ x, y, radius, productCode, apiKey, sort = 1 }, options = {}) {
-  const url = new URL(AROUND_ALL_URL);
-  const params = buildAroundSearchParams({ x, y, radius, productCode, sort });
+  if (apiKey || useDirectApi(options)) {
+    const url = new URL(AROUND_ALL_URL);
+    const params = buildAroundSearchParams({ x, y, radius, productCode, sort });
 
-  for (const [key, value] of Object.entries({ ...params, certkey: apiKey })) {
-    url.searchParams.set(key, value);
+    for (const [key, value] of Object.entries({ ...params, certkey: apiKey })) {
+      url.searchParams.set(key, value);
+    }
+
+    return parseAroundResponse(await fetchOpinetJson(url.toString(), options));
   }
+
+  const base = resolveProxyBaseUrl(options);
+  const url = new URL(`${base}/v1/opinet/around`);
+  url.searchParams.set("x", x);
+  url.searchParams.set("y", y);
+  url.searchParams.set("radius", radius);
+  url.searchParams.set("prodcd", productCode);
+  url.searchParams.set("sort", sort);
 
   return parseAroundResponse(await fetchOpinetJson(url.toString(), options));
 }
 
 async function fetchDetailById(id, apiKey, options = {}) {
-  const url = new URL(DETAIL_BY_ID_URL);
-  url.searchParams.set("out", "json");
+  if (apiKey || useDirectApi(options)) {
+    const url = new URL(DETAIL_BY_ID_URL);
+    url.searchParams.set("out", "json");
+    url.searchParams.set("id", id);
+    url.searchParams.set("certkey", apiKey);
+
+    return normalizeDetailItem(await fetchOpinetJson(url.toString(), options));
+  }
+
+  const base = resolveProxyBaseUrl(options);
+  const url = new URL(`${base}/v1/opinet/detail`);
   url.searchParams.set("id", id);
-  url.searchParams.set("certkey", apiKey);
 
   return normalizeDetailItem(await fetchOpinetJson(url.toString(), options));
 }
@@ -208,7 +237,7 @@ async function searchCheapGasStationsByCoordinates(options = {}) {
       y: katec.y,
       radius,
       productCode,
-      apiKey,
+      apiKey: apiKey || undefined,
       sort: options.sort ?? 1
     },
     options,
@@ -218,7 +247,7 @@ async function searchCheapGasStationsByCoordinates(options = {}) {
   const detailEntries = await Promise.all(
     detailTargets.map(async (item) => {
       try {
-        return [item.id, await fetchDetailById(item.id, apiKey, options)];
+        return [item.id, await fetchDetailById(item.id, apiKey || undefined, options)];
       } catch (error) {
         return [item.id, { error: String(error.message || error) }];
       }
@@ -277,6 +306,7 @@ async function searchCheapGasStationsByLocationQuery(locationQuery, options = {}
 
 module.exports = {
   AROUND_ALL_URL,
+  DEFAULT_PROXY_BASE_URL,
   DETAIL_BY_ID_URL,
   PLACE_PANEL_URL_BASE,
   SEARCH_VIEW_URL,

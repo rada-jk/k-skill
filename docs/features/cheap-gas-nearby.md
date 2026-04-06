@@ -11,8 +11,9 @@
 
 - 인터넷 연결
 - `node` 18+
-- `OPINET_API_KEY`
 - `cheap-gas-nearby` package 또는 이 저장소 전체 설치
+
+사용자 쪽에서 별도 `OPINET_API_KEY` 를 준비할 필요가 없다. 기본적으로 `https://k-skill-proxy.nomadamas.org` 프록시를 경유하며, upstream key는 proxy 서버에서만 주입한다.
 
 ## 가장 먼저 할 일
 
@@ -67,7 +68,6 @@ const { searchCheapGasStationsByLocationQuery } = require("cheap-gas-nearby");
 
 async function main() {
   const result = await searchCheapGasStationsByLocationQuery("서울역", {
-    apiKey: process.env.OPINET_API_KEY,
     productCode: "B027",
     radius: 1000,
     limit: 3
@@ -94,13 +94,13 @@ node --test packages/cheap-gas-nearby/test/index.test.js
 
 ## 운영 팁
 
-- `OPINET_API_KEY` 가 비어 있으면 다른 가격 서비스로 자동 우회하지 말고 필요한 값을 정확히 안내합니다.
+- 프록시 서버가 내려가 있거나 upstream key가 없으면 503 을 반환하므로 상태를 안내합니다.
 - 서울역/강남처럼 넓은 질의는 anchor 위치가 흔들릴 수 있으니 필요하면 더 구체적인 역 출구/동 이름을 한 번 더 받습니다.
 - 동일 가격이면 거리순으로 다시 정렬해 보여주는 편이 좋습니다.
 - 결과가 너무 많으면 반경을 `1000m` 또는 `2000m` 정도로 유지하는 편이 읽기 쉽습니다.
 
 ## 주의할 점
 
-- Opinet Open API는 인증키가 필요합니다.
+- Opinet Open API 인증키는 proxy 서버에서만 관리합니다. 사용자/client 쪽 secrets 파일에는 넣지 않습니다.
 - Kakao Map anchor 검색은 위치 기준점만 잡기 위한 보조 단계이고, 최종 가격/순위 데이터는 Opinet을 기준으로 합니다.
 - Opinet 응답의 좌표는 KATEC 이므로 WGS84와 혼동하면 안 됩니다.
