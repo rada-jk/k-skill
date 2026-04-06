@@ -867,6 +867,15 @@ test("bunjang-search skill documents bunjang-cli search, detail, favorite, chat,
     assert.match(doc, /TOON|toon/i);
     assert.match(doc, /TTY|interactive/);
     assert.match(doc, /로그인.*선택적|선택적.*로그인/u);
+    assert.match(
+      doc,
+      /검색 결과.*(제목.?가격|가격.?제목).*(1차|우선)|title.?price.*(triage|first)/i,
+    );
+    assert.match(
+      doc,
+      /(description|status|location).*(item get|--with-detail).*(전|먼저|이후)|((item get|--with-detail).*(description|status|location).*(전|먼저|이후))/i,
+    );
+    assert.match(doc, /노이즈|noisy|불안정|rely on/i);
   }
 
   assert.match(install, /### `bunjang-search` upstream CLI quickstart/);
