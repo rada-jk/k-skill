@@ -82,7 +82,7 @@ node scripts/korean_character_count.js --text $'첫 줄\n둘째 줄🙂' --profi
 profile: neis
 characters: 9
 lines: 2
-bytes: 24
+bytes: 23
 ```
 
 ### 파일 입력

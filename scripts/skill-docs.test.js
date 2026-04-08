@@ -1789,6 +1789,29 @@ test("repository docs advertise the korean-character-count skill and determinist
   assert.equal(fs.existsSync(path.join(repoRoot, "packages", "korean-character-count")), false);
 });
 
+test("korean-character-count feature doc NEIS example matches live helper output", () => {
+  const featureDoc = read(path.join("docs", "features", "korean-character-count.md"));
+  const helperOutput = childProcess.execFileSync(
+    "node",
+    [
+      "scripts/korean_character_count.js",
+      "--text",
+      "첫 줄\n둘째 줄🙂",
+      "--profile",
+      "neis",
+      "--format",
+      "text",
+    ],
+    { cwd: repoRoot, encoding: "utf8" },
+  );
+  const bytesMatch = helperOutput.match(/^bytes:\s+(\d+)$/m);
+
+  assert.ok(bytesMatch, `expected helper text output to include a bytes line, got: ${helperOutput}`);
+  assert.equal(bytesMatch[1], "23");
+  assert.match(featureDoc, new RegExp(String.raw`bytes:\s+${bytesMatch[1]}`));
+  assert.match(featureDoc, /bytes=23/);
+});
+
 test("korean-character-count install payload includes the documented helper command", () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "korean-character-count-"));
   const installedSkillPath = path.join(tempRoot, "korean-character-count");
