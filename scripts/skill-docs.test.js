@@ -232,9 +232,13 @@ test("proxy docs keep KEDU_INFO_KEY server-only and document household-waste env
   assert.match(proxyFeatureDoc, /DATA_GO_KR_API_KEY/);
 });
 
-test("setup guide lists household waste proxy usage alongside other hosted proxy skills", () => {
+test("setup guide lists hosted proxy skill coverage including household waste and school lunch", () => {
   const setup = read(path.join("docs", "setup.md"));
 
+  assert.match(
+    setup,
+    /미세먼지, 한강 수위, 주유소 가격, 생활쓰레기 배출정보, 부동산 실거래가, 학교 급식 식단은 기본 hosted proxy를 쓰므로 사용자 쪽 키가 불필요하다\./,
+  );
   assert.match(
     setup,
     /\| 생활쓰레기 배출정보 조회 \| 사용자 시크릿 불필요 \(프록시에 `DATA_GO_KR_API_KEY`가 설정된 hosted\/self-host 사용\) \|/,

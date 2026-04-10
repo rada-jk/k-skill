@@ -1,6 +1,6 @@
 # 공통 설정 가이드
 
-`k-skill` 전체 스킬을 설치한 뒤, 인증 정보가 필요한 기능(SRT 예매, KTX 예매, 한국 법령 검색의 로컬 CLI/MCP 경로용 `LAW_OC`, self-host 프록시 운영용 서울 지하철 upstream key, 또는 배포 확인이 끝난 proxy URL 공유)이 있으면 이 절차를 진행하면 된다. 미세먼지, 한강 수위, 주유소 가격, 생활쓰레기 배출정보, 부동산 실거래가는 기본 hosted proxy를 쓰므로 사용자 쪽 키가 불필요하다.
+`k-skill` 전체 스킬을 설치한 뒤, 인증 정보가 필요한 기능(SRT 예매, KTX 예매, 한국 법령 검색의 로컬 CLI/MCP 경로용 `LAW_OC`, self-host 프록시 운영용 서울 지하철 upstream key, 또는 배포 확인이 끝난 proxy URL 공유)이 있으면 이 절차를 진행하면 된다. 미세먼지, 한강 수위, 주유소 가격, 생활쓰레기 배출정보, 부동산 실거래가, 학교 급식 식단은 기본 hosted proxy를 쓰므로 사용자 쪽 키가 불필요하다.
 
 ## Credential resolution order
 
