@@ -9,6 +9,7 @@
 - `GET /v1/korea-weather/forecast`
 - `GET /v1/seoul-subway/arrival`
 - `GET /v1/han-river/water-level`
+- `GET /v1/household-waste/info` — 생활쓰레기 배출정보(시군구)
 - `GET /v1/neis/school-search` — 나이스 학교기본정보(교육청명·학교명 검색)
 - `GET /v1/neis/school-meal` — 나이스 급식식단정보(일자별 메뉴)
 - `GET /v1/korean-stock/search`
@@ -60,6 +61,34 @@ curl -fsS --get 'http://127.0.0.1:4020/v1/korea-weather/forecast' \
 ```bash
 curl -fsS --get 'http://127.0.0.1:4020/v1/han-river/water-level' \
   --data-urlencode 'stationName=한강대교'
+```
+
+나이스 학교 검색·급식 식단 예시 (`KEDU_INFO_KEY` 필요). 급식은 교육청 코드(`ATPT_OFCDC_SC_CODE`)와 학교 코드(`SD_SCHUL_CODE`)가 필요하므로 보통 아래 순서로 호출한다.
+
+학교 검색:
+
+```bash
+curl -fsS --get 'http://127.0.0.1:4020/v1/neis/school-search' \
+  --data-urlencode 'educationOffice=서울특별시교육청' \
+  --data-urlencode 'schoolName=미래초등학교'
+```
+
+급식 식단:
+
+```bash
+curl -fsS --get 'http://127.0.0.1:4020/v1/neis/school-meal' \
+  --data-urlencode 'educationOfficeCode=B10' \
+  --data-urlencode 'schoolCode=7010123' \
+  --data-urlencode 'mealDate=20260410'
+```
+
+생활쓰레기 배출정보 예시 (`DATA_GO_KR_API_KEY` 필요). `pageNo`·`numOfRows`는 반드시 `1`·`100`:
+
+```bash
+curl -fsS --get 'http://127.0.0.1:4020/v1/household-waste/info' \
+  --data-urlencode 'cond[SGG_NM::LIKE]=강남구' \
+  --data-urlencode 'pageNo=1' \
+  --data-urlencode 'numOfRows=100'
 ```
 
 한국 주식 검색 예시:

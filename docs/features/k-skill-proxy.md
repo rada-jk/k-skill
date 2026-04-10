@@ -12,13 +12,14 @@
 client/skill -> k-skill-proxy -> upstream public API
 ```
 
-현재 기본 엔드포인트는 아래 다섯 가지입니다.
+현재 기본 엔드포인트는 아래와 같습니다.
 
 - `GET /health`
 - `GET /v1/fine-dust/report`
 - `GET /v1/korea-weather/forecast`
 - `GET /v1/seoul-subway/arrival`
 - `GET /v1/han-river/water-level`
+- `GET /v1/household-waste/info` (생활쓰레기 배출정보)
 - `GET /v1/korean-stock/search`
 - `GET /v1/korean-stock/base-info`
 - `GET /v1/korean-stock/trade-info`
@@ -153,6 +154,15 @@ curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/neis/school-meal' \
   --data-urlencode 'educationOfficeCode=B10' \
   --data-urlencode 'schoolCode=7010123' \
   --data-urlencode 'mealDate=20260410'
+```
+
+생활쓰레기 배출정보 endpoint (`pageNo` / `numOfRows`는 반드시 `1` / `100`만 허용. 그 외 값·비정수 문자열은 `400`):
+
+```bash
+curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/household-waste/info' \
+  --data-urlencode 'cond[SGG_NM::LIKE]=강남구' \
+  --data-urlencode 'pageNo=1' \
+  --data-urlencode 'numOfRows=100'
 ```
 
 한국 주식 검색 endpoint:

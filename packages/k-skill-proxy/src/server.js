@@ -16,6 +16,7 @@ const KMA_FORECAST_READY_MINUTE = 10;
 const OPINET_API_BASE_URL = "https://www.opinet.co.kr/api";
 const NEIS_MEAL_SERVICE_URL = "https://open.neis.go.kr/hub/mealServiceDietInfo";
 const NEIS_SCHOOL_INFO_URL = "https://open.neis.go.kr/hub/schoolInfo";
+
 const ALLOWED_AIRKOREA_ROUTES = new Map([
   ["MsrstnInfoInqireSvc", new Set(["getMsrstnList", "getNearbyMsrstnList", "getTMStdrCrdnt"])],
   ["ArpltnInforInqireSvc", new Set(["getMsrstnAcctoRltmMesureDnsty", "getCtprvnRltmMesureDnsty"])],
@@ -851,6 +852,53 @@ async function proxyNeisSchoolInfoRequest({
   };
 }
 
+
+
+function validateHouseholdWastePaginationQuery(query) {
+  const HOUSEHOLD_WASTE_PAGINATION_RULE =
+    "Household waste info requires pageNo=1 and numOfRows=100 (page_no and num_of_rows accepted). Other values or non-digit strings return 400.";
+
+  const rawPage = query.pageNo ?? query.page_no;
+  const rawNum = query.numOfRows ?? query.num_of_rows;
+  const pageProvided =
+    rawPage !== undefined && rawPage !== null && String(rawPage).trim() !== "";
+  const numProvided =
+    rawNum !== undefined && rawNum !== null && String(rawNum).trim() !== "";
+
+  if (!pageProvided || !numProvided) {
+    return { ok: false, message: HOUSEHOLD_WASTE_PAGINATION_RULE };
+  }
+
+  const parseDigitsOnlyUInt = (raw, label) => {
+    const s = String(raw).trim();
+    if (!/^\d+$/.test(s)) {
+      return {
+        ok: false,
+        message: `Invalid ${label} for household waste info: use digits only; pageNo must be 1 and numOfRows must be 100.`
+      };
+    }
+    return { ok: true, value: Number.parseInt(s, 10) };
+  };
+
+  const pageParsed = parseDigitsOnlyUInt(rawPage, "pageNo");
+  if (!pageParsed.ok) {
+    return pageParsed;
+  }
+  if (pageParsed.value !== 1) {
+    return { ok: false, message: HOUSEHOLD_WASTE_PAGINATION_RULE };
+  }
+
+  const numParsed = parseDigitsOnlyUInt(rawNum, "numOfRows");
+  if (!numParsed.ok) {
+    return numParsed;
+  }
+  if (numParsed.value !== 100) {
+    return { ok: false, message: HOUSEHOLD_WASTE_PAGINATION_RULE };
+  }
+
+  return { ok: true };
+}
+
 function buildServer({ env = process.env, provider = null, now = () => new Date() } = {}) {
   const config = buildConfig(env);
   const cache = createMemoryCache();
@@ -1518,14 +1566,21 @@ function buildServer({ env = process.env, provider = null, now = () => new Date(
       };
     }
 
-    const pageNo = query.pageNo || "1";
-    const numOfRows = query.numOfRows || "20";
+    const paginationCheck = validateHouseholdWastePaginationQuery(query);
+    if (!paginationCheck.ok) {
+      reply.code(400);
+      return {
+        error: "bad_request",
+        message: paginationCheck.message
+      };
+    }
+
+    const pageNo =  "1";
+    const numOfRows =  "100";
 
     const cacheKey = makeCacheKey({
       route: "household-waste-info",
-      sggNm: sggNm.trim(),
-      pageNo,
-      numOfRows
+      sggNm: sggNm.trim()
     });
     const cached = cache.get(cacheKey);
     if (cached) {
