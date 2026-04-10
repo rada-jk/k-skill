@@ -9,7 +9,7 @@
 - `GET /v1/korea-weather/forecast`
 - `GET /v1/seoul-subway/arrival`
 - `GET /v1/han-river/water-level`
-- `GET /v1/household-waste/info` — 생활쓰레기 배출정보(시군구)
+- `GET /v1/household-waste/info` — 생활쓰레기 배출정보(`DATA_GO_KR_API_KEY`; `pageNo=1`, `numOfRows=100` 필수)
 - `GET /v1/neis/school-search` — 나이스 학교기본정보(교육청명·학교명 검색)
 - `GET /v1/neis/school-meal` — 나이스 급식식단정보(일자별 메뉴)
 - `GET /v1/korean-stock/search`

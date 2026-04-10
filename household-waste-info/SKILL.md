@@ -116,7 +116,8 @@ curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/household-waste/info' \
 - 프록시 서버에 `DATA_GO_KR_API_KEY`가 없거나 만료된 경우 (`serviceKey` 주입 실패)
 - 검색 지역명이 API 데이터와 불일치하여 결과가 비는 경우
 - 공공데이터 API 일시 장애/트래픽 제한
-- 필수 파라미터 누락(`cond[SGG_NM::LIKE]`)
+- 필수 파라미터 누락(`cond[SGG_NM::LIKE]`, 또는 `pageNo` / `numOfRows` 미전달)
+- `pageNo` / `numOfRows` 값이 `1` / `100`이 아니거나, 숫자만으로 표현되지 않은 문자열인 경우(proxy `400`, upstream 미호출)
 
 ## Notes
 

@@ -19,7 +19,7 @@ client/skill -> k-skill-proxy -> upstream public API
 - `GET /v1/korea-weather/forecast`
 - `GET /v1/seoul-subway/arrival`
 - `GET /v1/han-river/water-level`
-- `GET /v1/household-waste/info` (생활쓰레기 배출정보)
+- `GET /v1/household-waste/info` (생활쓰레기 배출정보, `DATA_GO_KR_API_KEY`; 쿼리 `pageNo`·`numOfRows` 필수, 값 `1`·`100`)
 - `GET /v1/korean-stock/search`
 - `GET /v1/korean-stock/base-info`
 - `GET /v1/korean-stock/trade-info`
@@ -156,7 +156,7 @@ curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/neis/school-meal' \
   --data-urlencode 'mealDate=20260410'
 ```
 
-생활쓰레기 배출정보 endpoint (`pageNo` / `numOfRows`는 반드시 `1` / `100`만 허용. 그 외 값·비정수 문자열은 `400`):
+생활쓰레기 배출정보 endpoint. 쿼리에 **`pageNo`와 `numOfRows`를 반드시 포함**하고, 값은 각각 **`1`**, **`100`**만 허용한다(`page_no` / `num_of_rows` 동일). 누락·다른 값·숫자만이 아닌 문자열이면 **`400`**(upstream 미호출):
 
 ```bash
 curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/household-waste/info' \
