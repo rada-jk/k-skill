@@ -38,6 +38,7 @@ https://www.epost.kr/search.RetrieveIntegrationNewZipCdList.comm
 
 ```bash
 python3 scripts/zipcode_search.py "서울특별시 강남구 테헤란로 123"
+./scripts/zipcode_search.py "서울특별시 강남구 테헤란로 123"
 ```
 
 ```json

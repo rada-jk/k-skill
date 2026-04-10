@@ -109,6 +109,7 @@ PY
 
 ```bash
 python3 scripts/zipcode_search.py "서울특별시 강남구 테헤란로 123"
+./scripts/zipcode_search.py "서울특별시 강남구 테헤란로 123"
 ```
 
 예시 출력:

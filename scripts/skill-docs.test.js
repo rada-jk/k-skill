@@ -552,6 +552,7 @@ test("zipcode-search docs lock the official postcode plus English-address extrac
     assert.match(doc, /"--retry-delay",\s+"1"/);
     assert.match(doc, /영문 주소|영문주소/);
     assert.match(doc, /python3 scripts\/zipcode_search\.py/);
+    assert.match(doc, /\.\/scripts\/zipcode_search\.py/);
     assert.match(doc, /mktemp|임시 파일/);
     assert.doesNotMatch(doc, /urllib\.request/);
   }
