@@ -133,10 +133,10 @@ curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/opinet/detail' \
 curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/household-waste/info' \
   --data-urlencode 'cond[SGG_NM::LIKE]=강남구' \
   --data-urlencode 'pageNo=1' \
-  --data-urlencode 'numOfRows=20'
+  --data-urlencode 'numOfRows=100'
 ```
 
-이 endpoint 는 `DATA_GO_KR_API_KEY`를 프록시 서버에서만 주입하고 `returnType=json`을 강제합니다. `pageNo`는 1 이상 정수, `numOfRows`는 1~100 범위만 허용합니다.
+이 endpoint 는 `DATA_GO_KR_API_KEY`를 프록시 서버에서만 주입하고 `returnType=json`을 강제합니다. `pageNo`는 정확히 `1`만 허용하고 `numOfRows`는 정확히 `100`만 허용합니다.
 
 나이스 학교 검색·급식 endpoint (학교 급식 식단 스킬에서 사용):
 

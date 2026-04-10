@@ -50,6 +50,32 @@ function trimSingleQueryValueOrNull(value, fieldName) {
   return trimOrNull(value);
 }
 
+function trimSingleAliasedQueryValueOrNull(query, aliases, fieldName) {
+  const providedAliases = aliases.filter((alias) => Object.hasOwn(query, alias));
+  if (providedAliases.length > 1) {
+    throw new Error(`${fieldName} must be provided exactly once.`);
+  }
+
+  if (providedAliases.length === 0) {
+    return null;
+  }
+
+  return trimSingleQueryValueOrNull(query[providedAliases[0]], fieldName);
+}
+
+function requireFixedQueryInteger(query, aliases, fieldName, expectedValue) {
+  const rawValue = trimSingleAliasedQueryValueOrNull(query, aliases, fieldName);
+  if (rawValue === null) {
+    throw new Error(`${fieldName} is required and must be exactly ${expectedValue}.`);
+  }
+
+  if (!/^\d+$/.test(rawValue) || Number.parseInt(rawValue, 10) !== expectedValue) {
+    throw new Error(`${fieldName} must be exactly ${expectedValue}.`);
+  }
+
+  return String(expectedValue);
+}
+
 function buildConfig(env = process.env) {
   return {
     host: env.KSKILL_PROXY_HOST || "127.0.0.1",
@@ -344,28 +370,13 @@ function normalizeHouseholdWasteInfoQuery(query) {
     throw new Error("cond[SGG_NM::LIKE] is required");
   }
 
-  const pageNoRaw = trimSingleQueryValueOrNull(query.pageNo ?? query.page_no, "pageNo") || "1";
-  if (!/^\d+$/.test(pageNoRaw)) {
-    throw new Error("pageNo must be an integer >= 1.");
-  }
-  const pageNo = Number.parseInt(pageNoRaw, 10);
-  if (pageNo < 1) {
-    throw new Error("pageNo must be an integer >= 1.");
-  }
-
-  const numOfRowsRaw = trimSingleQueryValueOrNull(query.numOfRows ?? query.num_of_rows, "numOfRows") || "20";
-  if (!/^\d+$/.test(numOfRowsRaw)) {
-    throw new Error("numOfRows must be an integer between 1 and 100.");
-  }
-  const numOfRows = Number.parseInt(numOfRowsRaw, 10);
-  if (numOfRows < 1 || numOfRows > 100) {
-    throw new Error("numOfRows must be an integer between 1 and 100.");
-  }
+  const pageNo = requireFixedQueryInteger(query, ["pageNo", "page_no"], "pageNo", 1);
+  const numOfRows = requireFixedQueryInteger(query, ["numOfRows", "num_of_rows"], "numOfRows", 100);
 
   return {
     sggNm,
-    pageNo: String(pageNo),
-    numOfRows: String(numOfRows)
+    pageNo,
+    numOfRows
   };
 }
 

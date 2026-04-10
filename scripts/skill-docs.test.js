@@ -232,6 +232,33 @@ test("proxy docs keep KEDU_INFO_KEY server-only and document household-waste env
   assert.match(proxyFeatureDoc, /DATA_GO_KR_API_KEY/);
 });
 
+
+test("household-waste and proxy docs lock the narrowed household-waste curl contract", () => {
+  const skill = read(path.join("household-waste-info", "SKILL.md"));
+  const featureDoc = read(path.join("docs", "features", "household-waste-info.md"));
+  const proxyReadme = read(path.join("packages", "k-skill-proxy", "README.md"));
+  const proxyFeatureDoc = read(path.join("docs", "features", "k-skill-proxy.md"));
+
+  for (const doc of [skill, featureDoc, proxyReadme, proxyFeatureDoc]) {
+    assert.match(doc, /pageNo=1/);
+    assert.match(doc, /numOfRows=100/);
+    assert.match(doc, /pageNo[^\n]*정확히 [`']?1[`']?만 허용/);
+    assert.match(doc, /numOfRows[^\n]*정확히 [`']?100[`']?만 허용/);
+  }
+});
+
+test("proxy package README documents both NEIS curl steps", () => {
+  const proxyReadme = read(path.join("packages", "k-skill-proxy", "README.md"));
+
+  assert.match(proxyReadme, /\/v1\/neis\/school-search/);
+  assert.match(proxyReadme, /educationOffice=서울특별시교육청/);
+  assert.match(proxyReadme, /schoolName=미래초등학교/);
+  assert.match(proxyReadme, /\/v1\/neis\/school-meal/);
+  assert.match(proxyReadme, /educationOfficeCode=B10/);
+  assert.match(proxyReadme, /schoolCode=7010123/);
+  assert.match(proxyReadme, /mealDate=20260410/);
+});
+
 test("setup guide lists hosted proxy skill coverage including household waste and school lunch", () => {
   const setup = read(path.join("docs", "setup.md"));
 

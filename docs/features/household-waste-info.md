@@ -15,19 +15,18 @@
 ## 먼저 필요한 것
 
 - 인터넷 연결
-- 원본 API 접근 가능 환경
-- API 키 주입용 proxy 접근 가능 환경
+- `DATA_GO_KR_API_KEY`가 설정된 proxy 접근 가능 환경
 
 ## 기본 조회 예시
 
 ```bash
 curl -fsS --get 'https://k-skill-proxy.nomadamas.org/v1/household-waste/info' \
   --data-urlencode 'pageNo=1' \
-  --data-urlencode 'numOfRows=20' \
+  --data-urlencode 'numOfRows=100' \
   --data-urlencode 'cond[SGG_NM::LIKE]=강남구'
 ```
 
-현재 proxy가 패스스루하는 파라미터는 `pageNo`, `numOfRows`, `cond[SGG_NM::LIKE]` 뿐이며, `returnType`은 항상 `json`으로 강제된다. `pageNo`는 1 이상 정수만 허용하고 `numOfRows`는 1~100 범위로 제한한다. 원본 API의 `cond[DAT_CRTR_YMD::*]`, `cond[DAT_UPDT_PNT::*]` 같은 부가 필터는 현재 지원하지 않는다 — 일반 사용자 질의("강남구 쓰레기 배출 요일")는 시군구 검색만으로 충분하기 때문이다.
+현재 proxy가 패스스루하는 파라미터는 `pageNo`, `numOfRows`, `cond[SGG_NM::LIKE]` 뿐이며, `returnType`은 항상 `json`으로 강제된다. `pageNo`는 정확히 `1`만 허용하고 `numOfRows`는 정확히 `100`만 허용한다. 원본 API의 `cond[DAT_CRTR_YMD::*]`, `cond[DAT_UPDT_PNT::*]` 같은 부가 필터는 현재 지원하지 않는다 — 일반 사용자 질의("강남구 쓰레기 배출 요일")는 시군구 검색만으로 충분하기 때문이다.
 
 ## 조회 흐름 권장 순서
 

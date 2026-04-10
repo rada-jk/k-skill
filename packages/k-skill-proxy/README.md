@@ -35,6 +35,8 @@ node packages/k-skill-proxy/src/server.js
 
 환경변수(`AIR_KOREA_OPEN_API_KEY` 등)가 이미 설정되어 있거나 `~/.config/k-skill/secrets.env`를 source한 상태에서 실행한다.
 
+> 빠뜨리기 쉬운 값: 생활쓰레기 route는 `DATA_GO_KR_API_KEY`, 학교 검색/급식 route는 `KEDU_INFO_KEY`가 프록시 서버 쪽에 있어야 하며, 누락 시 각 route가 `503 upstream_not_configured`를 반환한다.
+
 서울 지하철 도착정보 예시:
 
 ```bash
@@ -57,10 +59,27 @@ curl -fsS --get 'http://127.0.0.1:4020/v1/han-river/water-level' \
 curl -fsS --get 'http://127.0.0.1:4020/v1/household-waste/info' \
   --data-urlencode 'cond[SGG_NM::LIKE]=강남구' \
   --data-urlencode 'pageNo=1' \
-  --data-urlencode 'numOfRows=20'
+  --data-urlencode 'numOfRows=100'
 ```
 
-프록시는 `serviceKey`를 `DATA_GO_KR_API_KEY`에서만 주입하고 `returnType=json`을 강제합니다. `pageNo`는 1 이상 정수, `numOfRows`는 1~100 범위만 허용합니다.
+프록시는 `serviceKey`를 `DATA_GO_KR_API_KEY`에서만 주입하고 `returnType=json`을 강제합니다. `pageNo`는 정확히 `1`만 허용하고 `numOfRows`는 정확히 `100`만 허용합니다.
+
+학교 검색 예시:
+
+```bash
+curl -fsS --get 'http://127.0.0.1:4020/v1/neis/school-search' \
+  --data-urlencode 'educationOffice=서울특별시교육청' \
+  --data-urlencode 'schoolName=미래초등학교'
+```
+
+학교 급식 예시:
+
+```bash
+curl -fsS --get 'http://127.0.0.1:4020/v1/neis/school-meal' \
+  --data-urlencode 'educationOfficeCode=B10' \
+  --data-urlencode 'schoolCode=7010123' \
+  --data-urlencode 'mealDate=20260410'
+```
 
 
 ## PM2 실행

@@ -1024,14 +1024,41 @@ test("neis school-search proxies schoolInfo and resolves 교육청 이름", asyn
   assert.ok(decodeURIComponent(fetchedUrl).includes("미래초등학교"));
 });
 
-test("household waste info endpoint requires SGG_NM filter", async (t) => {
+function buildHouseholdWasteTestApp(t, envOverrides = {}) {
   const app = buildServer({
-    env: { DATA_GO_KR_API_KEY: "test-key" }
+    env: {
+      DATA_GO_KR_API_KEY: "test-key",
+      ...envOverrides
+    }
   });
 
   t.after(async () => {
     await app.close();
   });
+
+  return app;
+}
+
+function mockHouseholdWasteJsonFetch(t, body = { response: { body: { items: [] } } }, status = 200) {
+  const originalFetch = global.fetch;
+  const fetchCalls = [];
+  global.fetch = async (url) => {
+    fetchCalls.push(String(url));
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" }
+    });
+  };
+
+  t.after(() => {
+    global.fetch = originalFetch;
+  });
+
+  return fetchCalls;
+}
+
+test("household waste info endpoint requires SGG_NM filter", async (t) => {
+  const app = buildHouseholdWasteTestApp(t);
 
   const response = await app.inject({
     method: "GET",
@@ -1043,33 +1070,48 @@ test("household waste info endpoint requires SGG_NM filter", async (t) => {
 });
 
 test("household waste info endpoint rejects duplicated SGG_NM filters before upstream fetch", async (t) => {
-  const originalFetch = global.fetch;
-  const fetchCalls = [];
-  global.fetch = async (url) => {
-    fetchCalls.push(String(url));
-    return new Response(JSON.stringify({ response: { body: { items: [] } } }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
-  };
-
-  const app = buildServer({
-    env: { DATA_GO_KR_API_KEY: "test-key" }
-  });
-
-  t.after(async () => {
-    global.fetch = originalFetch;
-    await app.close();
-  });
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&cond%5BSGG_NM%3A%3ALIKE%5D=%EC%84%9C%EC%B4%88%EA%B5%AC&pageNo=1&numOfRows=20"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&cond%5BSGG_NM%3A%3ALIKE%5D=%EC%84%9C%EC%B4%88%EA%B5%AC&pageNo=1&numOfRows=100"
   });
 
   assert.equal(response.statusCode, 400);
   assert.equal(response.json().error, "bad_request");
   assert.match(response.json().message, /cond\[SGG_NM::LIKE\]/i);
+  assert.equal(fetchCalls.length, 0);
+});
+
+
+test("household waste info endpoint requires pageNo before upstream fetch", async (t) => {
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&numOfRows=100"
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().error, "bad_request");
+  assert.match(response.json().message, /pageNo/i);
+  assert.equal(fetchCalls.length, 0);
+});
+
+test("household waste info endpoint requires numOfRows before upstream fetch", async (t) => {
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1"
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().error, "bad_request");
+  assert.match(response.json().message, /numOfRows/i);
   assert.equal(fetchCalls.length, 0);
 });
 
@@ -1082,7 +1124,7 @@ test("household waste info endpoint reports 503 when DATA_GO_KR_API_KEY is missi
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=100"
   });
 
   assert.equal(response.statusCode, 503);
@@ -1090,44 +1132,27 @@ test("household waste info endpoint reports 503 when DATA_GO_KR_API_KEY is missi
 });
 
 test("household waste info endpoint injects serviceKey, forces returnType=json, and caches", async (t) => {
-  const originalFetch = global.fetch;
-  const fetchCalls = [];
-  global.fetch = async (url) => {
-    fetchCalls.push(String(url));
-    return new Response(
-      JSON.stringify({
-        response: {
-          body: {
-            items: [
-              {
-                SGG_NM: "강남구",
-                MNG_ZONE_NM: "역삼1동",
-                EMSN_PLC: "지정장소",
-                LF_WST_EMSN_DOW: "월,수,금",
-                LF_WST_EMSN_BGNG_TM: "18:00",
-                LF_WST_EMSN_END_TM: "23:00"
-              }
-            ]
+  const fetchCalls = mockHouseholdWasteJsonFetch(t, {
+    response: {
+      body: {
+        items: [
+          {
+            SGG_NM: "강남구",
+            MNG_ZONE_NM: "역삼1동",
+            EMSN_PLC: "지정장소",
+            LF_WST_EMSN_DOW: "월,수,금",
+            LF_WST_EMSN_BGNG_TM: "18:00",
+            LF_WST_EMSN_END_TM: "23:00"
           }
-        }
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  };
-
-  const app = buildServer({
-    env: {
-      DATA_GO_KR_API_KEY: "test-key",
-      KSKILL_PROXY_CACHE_TTL_MS: "60000"
+        ]
+      }
     }
   });
-
-  t.after(async () => {
-    global.fetch = originalFetch;
-    await app.close();
+  const app = buildHouseholdWasteTestApp(t, {
+    KSKILL_PROXY_CACHE_TTL_MS: "60000"
   });
 
-  const url = "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=20";
+  const url = "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=100";
 
   const first = await app.inject({ method: "GET", url });
   assert.equal(first.statusCode, 200);
@@ -1135,7 +1160,7 @@ test("household waste info endpoint injects serviceKey, forces returnType=json, 
   assert.equal(firstBody.proxy.cache.hit, false);
   assert.equal(firstBody.query.sgg_nm, "강남구");
   assert.equal(firstBody.query.page_no, "1");
-  assert.equal(firstBody.query.num_of_rows, "20");
+  assert.equal(firstBody.query.num_of_rows, "100");
   assert.equal(firstBody.response.body.items[0].SGG_NM, "강남구");
 
   assert.equal(fetchCalls.length, 1);
@@ -1144,7 +1169,7 @@ test("household waste info endpoint injects serviceKey, forces returnType=json, 
   assert.equal(upstream.searchParams.get("serviceKey"), "test-key");
   assert.equal(upstream.searchParams.get("returnType"), "json");
   assert.equal(upstream.searchParams.get("pageNo"), "1");
-  assert.equal(upstream.searchParams.get("numOfRows"), "20");
+  assert.equal(upstream.searchParams.get("numOfRows"), "100");
   assert.equal(upstream.searchParams.get("cond[SGG_NM::LIKE]"), "강남구");
 
   const second = await app.inject({ method: "GET", url });
@@ -1164,18 +1189,14 @@ test("household waste info endpoint ignores user-supplied returnType override", 
     });
   };
 
-  const app = buildServer({
-    env: { DATA_GO_KR_API_KEY: "test-key" }
-  });
-
-  t.after(async () => {
+  const app = buildHouseholdWasteTestApp(t);
+  t.after(() => {
     global.fetch = originalFetch;
-    await app.close();
   });
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EC%88%98%EC%9B%90%EC%8B%9C&returnType=xml"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EC%88%98%EC%9B%90%EC%8B%9C&pageNo=1&numOfRows=100&returnType=xml"
   });
 
   assert.equal(response.statusCode, 200);
@@ -1183,28 +1204,12 @@ test("household waste info endpoint ignores user-supplied returnType override", 
 });
 
 test("household waste info endpoint rejects non-numeric pageNo before upstream fetch", async (t) => {
-  const originalFetch = global.fetch;
-  const fetchCalls = [];
-  global.fetch = async (url) => {
-    fetchCalls.push(String(url));
-    return new Response(JSON.stringify({ response: { body: { items: [] } } }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
-  };
-
-  const app = buildServer({
-    env: { DATA_GO_KR_API_KEY: "test-key" }
-  });
-
-  t.after(async () => {
-    global.fetch = originalFetch;
-    await app.close();
-  });
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=abc&numOfRows=20"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=abc&numOfRows=100"
   });
 
   assert.equal(response.statusCode, 400);
@@ -1213,29 +1218,13 @@ test("household waste info endpoint rejects non-numeric pageNo before upstream f
   assert.equal(fetchCalls.length, 0);
 });
 
-test("household waste info endpoint rejects pageNo below 1 before upstream fetch", async (t) => {
-  const originalFetch = global.fetch;
-  const fetchCalls = [];
-  global.fetch = async (url) => {
-    fetchCalls.push(String(url));
-    return new Response(JSON.stringify({ response: { body: { items: [] } } }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
-  };
-
-  const app = buildServer({
-    env: { DATA_GO_KR_API_KEY: "test-key" }
-  });
-
-  t.after(async () => {
-    global.fetch = originalFetch;
-    await app.close();
-  });
+test("household waste info endpoint rejects pageNo values other than 1 before upstream fetch", async (t) => {
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=0&numOfRows=20"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=2&numOfRows=100"
   });
 
   assert.equal(response.statusCode, 400);
@@ -1244,29 +1233,13 @@ test("household waste info endpoint rejects pageNo below 1 before upstream fetch
   assert.equal(fetchCalls.length, 0);
 });
 
-test("household waste info endpoint rejects numOfRows above 100 before upstream fetch", async (t) => {
-  const originalFetch = global.fetch;
-  const fetchCalls = [];
-  global.fetch = async (url) => {
-    fetchCalls.push(String(url));
-    return new Response(JSON.stringify({ response: { body: { items: [] } } }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
-  };
-
-  const app = buildServer({
-    env: { DATA_GO_KR_API_KEY: "test-key" }
-  });
-
-  t.after(async () => {
-    global.fetch = originalFetch;
-    await app.close();
-  });
+test("household waste info endpoint rejects numOfRows values other than 100 before upstream fetch", async (t) => {
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=101"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=20"
   });
 
   assert.equal(response.statusCode, 400);
@@ -1275,29 +1248,43 @@ test("household waste info endpoint rejects numOfRows above 100 before upstream 
   assert.equal(fetchCalls.length, 0);
 });
 
-test("household waste info endpoint rejects numOfRows below 1 before upstream fetch", async (t) => {
-  const originalFetch = global.fetch;
-  const fetchCalls = [];
-  global.fetch = async (url) => {
-    fetchCalls.push(String(url));
-    return new Response(JSON.stringify({ response: { body: { items: [] } } }), {
-      status: 200,
-      headers: { "content-type": "application/json" }
-    });
-  };
-
-  const app = buildServer({
-    env: { DATA_GO_KR_API_KEY: "test-key" }
-  });
-
-  t.after(async () => {
-    global.fetch = originalFetch;
-    await app.close();
-  });
+test("household waste info endpoint rejects duplicated pageNo values before upstream fetch", async (t) => {
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=0"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&pageNo=2&numOfRows=100"
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().error, "bad_request");
+  assert.match(response.json().message, /pageNo/i);
+  assert.equal(fetchCalls.length, 0);
+});
+
+test("household waste info endpoint rejects mixed pageNo aliases before upstream fetch", async (t) => {
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&page_no=2&numOfRows=100"
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().error, "bad_request");
+  assert.match(response.json().message, /pageNo/i);
+  assert.equal(fetchCalls.length, 0);
+});
+
+test("household waste info endpoint rejects mixed numOfRows aliases before upstream fetch", async (t) => {
+  const fetchCalls = mockHouseholdWasteJsonFetch(t);
+  const app = buildHouseholdWasteTestApp(t);
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=100&num_of_rows=20"
   });
 
   assert.equal(response.statusCode, 400);
@@ -1321,7 +1308,7 @@ test("household waste info endpoint surfaces upstream non-200 as 502", async (t)
 
   const response = await app.inject({
     method: "GET",
-    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC"
+    url: "/v1/household-waste/info?cond%5BSGG_NM%3A%3ALIKE%5D=%EA%B0%95%EB%82%A8%EA%B5%AC&pageNo=1&numOfRows=100"
   });
 
   assert.equal(response.statusCode, 502);
