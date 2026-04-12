@@ -513,6 +513,35 @@ test("ktx-booking helper python regression tests pass", () => {
   );
 });
 
+
+
+test("repository docs advertise the geeknews-search skill across the documented surfaces", () => {
+  const readme = read("README.md");
+  const install = read(path.join("docs", "install.md"));
+  const featureDocPath = path.join(repoRoot, "docs", "features", "geeknews-search.md");
+  const skillPath = path.join(repoRoot, "geeknews-search", "SKILL.md");
+
+  assert.ok(fs.existsSync(featureDocPath), "expected docs/features/geeknews-search.md to exist");
+  assert.ok(fs.existsSync(skillPath), "expected geeknews-search/SKILL.md to exist");
+  assert.match(readme, /\| 긱뉴스 조회 \|/);
+  assert.match(readme, /\[긱뉴스 조회 가이드\]\(docs\/features\/geeknews-search\.md\)/);
+  assert.match(install, /--skill geeknews-search/);
+});
+
+test("geeknews-search docs lock the RSS-first list-search-detail workflow", () => {
+  const skill = read(path.join("geeknews-search", "SKILL.md"));
+  const featureDoc = read(path.join("docs", "features", "geeknews-search.md"));
+
+  for (const doc of [skill, featureDoc]) {
+    assert.match(doc, /feeds\.feedburner\.com\/geeknews-feed/);
+    assert.match(doc, /python3 scripts\/geeknews_search\.py list/);
+    assert.match(doc, /python3 scripts\/geeknews_search\.py search/);
+    assert.match(doc, /python3 scripts\/geeknews_search\.py detail/);
+    assert.match(doc, /RSS-first|RSS first|RSS 피드/);
+    assert.match(doc, /read-only|읽기 전용/);
+  }
+});
+
 test("repository docs advertise the subway-lost-property skill across the documented surfaces", () => {
   const readme = read("README.md");
   const install = read(path.join("docs", "install.md"));
