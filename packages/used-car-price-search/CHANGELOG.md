@@ -1,5 +1,11 @@
 # used-car-price-search
 
+## 0.5.0
+
+### Minor Changes
+
+- 89a016a: Publish the first reusable used-car-price-search package with the SK direct inventory parser and skill docs.
+
 ## 0.4.0
 
 ### Minor Changes
