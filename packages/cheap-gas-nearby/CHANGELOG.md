@@ -1,5 +1,11 @@
 # cheap-gas-nearby
 
+## 0.4.0
+
+### Minor Changes
+
+- 397d0ee: Publish the first official Opinet-powered nearby cheapest gas station lookup package and skill docs.
+
 ## 0.3.0
 
 ### Minor Changes

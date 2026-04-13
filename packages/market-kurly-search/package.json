@@ -1,6 +1,6 @@
 {
   "name": "market-kurly-search",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Unauthenticated Market Kurly product search and detail client",
   "license": "MIT",
   "main": "src/index.js",
